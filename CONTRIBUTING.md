@@ -93,10 +93,11 @@ Errors are written to `%TEMP%\claude-session-widget.log`.
 | `src/lang/en.psd1`, `src/lang/tr.psd1` | UI strings, one file per language. |
 | `tests/*.Tests.ps1`, `tests/fixtures/` | Pester 5 tests and sample transcripts / session records. |
 | `tools/Test-Scripts.ps1` | Parse check plus encoding rules (BOM, CRLF, ASCII-only files). |
+| `tools/New-Icon.ps1` | Regenerates `src/assets/claude-session-widget.ico` (the app icon for shortcuts, Installed apps and the setup window). Commit the result. |
 | `tools/Build-Release.ps1` | Builds `dist/claude-session-widget-<version>.zip`. |
 | `.github/workflows/ci.yml` | CI on `windows-latest` with Windows PowerShell 5.1: Test-Scripts, PSScriptAnalyzer, Pester, `-Test` smoke run. |
 | `.github/workflows/release.yml` | On a `vX.Y.Z` tag: builds the zip and publishes a GitHub Release. |
-| `installer/Installer.ps1` | Install/update logic shared by the setup window and `install.ps1` (functions only). Installs to `%LOCALAPPDATA%\ClaudeSessionWidget`, adds Start menu shortcuts and an *Installed apps* entry. |
+| `installer/Installer.ps1` | Install/update logic shared by the setup window and `install.ps1` (functions only). Installs to `%LOCALAPPDATA%\ClaudeSessionWidget`, adds one Start menu entry and an *Installed apps* entry. |
 | `installer/Setup.ps1` | The setup window opened by `Install.cmd` (welcome → progress → done). `-Page welcome\|progress\|done\|error -Screenshot <png>` renders a page without installing. |
 | `install.ps1`, `uninstall.ps1`, `Install.cmd`, `Uninstall.cmd` | Console installer (used by `get.ps1` and scripts), uninstaller, and the double-click launchers. No admin rights needed. |
 | `get.ps1` | One-line installer (`irm … \| iex`). ASCII only. |
@@ -240,7 +241,7 @@ Parser changes need a test in `tests/` with a fixture in `tests/fixtures/`.
       keep finished.
 - [ ] Language switch restarts the widget in the new language.
 - [ ] Tray icon: hide/show, *Settings…*, quit.
-- [ ] `Install.cmd` and `Uninstall.cmd` (and `-KeepSettings`) still work: Start menu shortcuts,
+- [ ] `Install.cmd` and `Uninstall.cmd` (and `-KeepSettings`) still work: the Start menu entry and its icon,
       *Installed apps* entry, startup shortcut.
 - [ ] Tested with Windows display scaling other than 100% if you touched layout.
 

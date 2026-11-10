@@ -86,7 +86,13 @@ function Get-WidgetLaunchArgument {
   return $line
 }
 
-# Creates a .lnk that launches the widget (icon = widget.ico when present).
+# The app icon shipped in src\assets (see tools\New-Icon.ps1).
+function Get-WidgetIconPath {
+  param([Parameter(Mandatory)][string]$AppDir)
+  Join-Path $AppDir 'assets\claude-session-widget.ico'
+}
+
+# Creates a .lnk that launches the widget, with the app icon.
 function New-WidgetShortcut {
   [CmdletBinding()]
   param(
@@ -102,8 +108,8 @@ function New-WidgetShortcut {
   $lnk.WorkingDirectory = $AppDir
   $lnk.WindowStyle = 7   # minimized, so no console flashes before -WindowStyle Hidden applies
   $lnk.Description = $Description
-  $ico = Join-Path $AppDir 'widget.ico'
-  if (Test-Path -LiteralPath $ico) { $lnk.IconLocation = $ico }
+  $ico = Get-WidgetIconPath -AppDir $AppDir
+  if (Test-Path -LiteralPath $ico) { $lnk.IconLocation = "$ico,0" }
   $lnk.Save()
 }
 

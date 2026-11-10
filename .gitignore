@@ -1,5 +1,4 @@
-# Çalışırken oluşturulan simge
-src/widget.ico
+# Logs, OS files and build output
 *.log
 Thumbs.db
 desktop.ini

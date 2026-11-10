@@ -218,8 +218,7 @@ $Styles
 
   # Taskbar / Alt+Tab icon
   try {
-    $iconFile = Join-Path $env:TEMP 'claude-session-widget-setup.ico'
-    Save-WidgetIcon $iconFile
+    $iconFile = Get-WidgetIconPath -AppDir (Join-Path $Root 'src')
     $win.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create([Uri]$iconFile)
   } catch {}
 

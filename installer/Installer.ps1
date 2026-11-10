@@ -15,7 +15,8 @@ function Get-InstallLayout {
     Dest = Join-Path $env:LOCALAPPDATA 'ClaudeSessionWidget'
     Programs = $programs
     Startup = $startup
-    StartMenu = Join-Path $programs 'Claude Session Widget'
+    StartMenu = Join-Path $programs 'Claude Session Widget'            # folder used by older versions
+    StartMenuLink = Join-Path $programs 'Claude Session Widget.lnk'
     UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeSessionWidget'
     LegacyName = 'Claude Oturum Widget'
     LegacyDest = Join-Path $env:LOCALAPPDATA 'ClaudeOturumWidget'
@@ -36,25 +37,6 @@ function Get-WidgetVersion([string]$EntryScript) {
 function Get-InstalledWidgetVersion {
   $layout = Get-InstallLayout
   Get-WidgetVersion (Join-Path $layout.Dest 'claude-session-widget.ps1')
-}
-
-# Writes the round ✻ icon used by the shortcuts and the Installed apps entry.
-function Save-WidgetIcon([string]$Path) {
-  Add-Type -AssemblyName System.Drawing
-  $bmp = New-Object System.Drawing.Bitmap 64, 64
-  $g = [System.Drawing.Graphics]::FromImage($bmp)
-  $g.SmoothingMode = 'AntiAlias'
-  $g.TextRenderingHint = 'AntiAliasGridFit'
-  $g.FillEllipse((New-Object System.Drawing.SolidBrush ([System.Drawing.ColorTranslator]::FromHtml('#262624'))), 0, 0, 63, 63)
-  $font = New-Object System.Drawing.Font('Segoe UI Symbol', 36, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-  $sf = New-Object System.Drawing.StringFormat
-  $sf.Alignment = 'Center'; $sf.LineAlignment = 'Center'
-  $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.ColorTranslator]::FromHtml('#D97757'))
-  $g.DrawString([string][char]0x273B, $font, $brush, (New-Object System.Drawing.RectangleF(0, 2, 64, 64)), $sf)
-  $g.Dispose()
-  $ico = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
-  $fs = [System.IO.File]::Create($Path)
-  try { $ico.Save($fs) } finally { $fs.Close() }
 }
 
 # Stops running widgets, old (oturum-widget.ps1) and new (claude-session-widget.ps1).
@@ -105,28 +87,16 @@ function Install-ClaudeSessionWidget {
   Copy-Item -LiteralPath (Join-Path $SourceRoot 'uninstall.ps1') -Destination (Join-Path $dest 'uninstall.ps1') -Force
   Get-ChildItem -LiteralPath $dest -Recurse -File | Unblock-File -ErrorAction SilentlyContinue
 
-  $icon = Join-Path $dest 'widget.ico'
-  try { Save-WidgetIcon $icon } catch { $icon = $null }
-
-  # Shortcut and launch-command helpers shared with the widget
+  # Shortcut, icon and launch-command helpers shared with the widget
   . (Join-Path $dest 'lib\Settings.ps1')
   $ps = Get-PowerShellExe
+  $icon = Get-WidgetIconPath -AppDir $dest
+  if (-not (Test-Path -LiteralPath $icon)) { $icon = $null }
 
+  # One Start menu entry. Settings open from the widget; uninstall lives in Installed apps.
   & $Progress 50 'SetupStepShortcuts'
-  $name = $layout.AppName
-  Remove-Item -LiteralPath $layout.StartMenu -Recurse -Force -ErrorAction SilentlyContinue
-  New-Item -ItemType Directory -Force -Path $layout.StartMenu | Out-Null
-  New-WidgetShortcut -Path (Join-Path $layout.StartMenu "$name.lnk") -AppDir $dest -Description (T 'SetupLnkDesc')
-  New-WidgetShortcut -Path (Join-Path $layout.StartMenu ("$name - " + (T 'SetupLnkSettings') + '.lnk')) -AppDir $dest `
-    -Extra '-OpenSettings' -Description (T 'SetupLnkSettings')
-  $sh = New-Object -ComObject WScript.Shell
-  $l = $sh.CreateShortcut((Join-Path $layout.StartMenu ("$name - " + (T 'SetupLnkUninstall') + '.lnk')))
-  $l.TargetPath = $ps
-  $l.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$(Join-Path $dest 'uninstall.ps1')`""
-  $l.WorkingDirectory = $dest
-  if ($icon) { $l.IconLocation = $icon }
-  $l.Description = (T 'SetupLnkUninstall')
-  $l.Save()
+  Remove-Item -LiteralPath $layout.StartMenu -Recurse -Force -ErrorAction SilentlyContinue   # folder of older versions
+  New-WidgetShortcut -Path $layout.StartMenuLink -AppDir $dest -Description (T 'SetupLnkDesc')
 
   & $Progress 70 'SetupStepStartup'
   $startupLnk = Get-StartupShortcutPath
@@ -146,7 +116,7 @@ function Install-ClaudeSessionWidget {
     NoModify = 1
     NoRepair = 1
   }
-  if ($icon) { $props.DisplayIcon = $icon }
+  if ($icon) { $props.DisplayIcon = "$icon,0" }
   foreach ($k in $props.Keys) {
     $type = 'String'; if ($props[$k] -is [int]) { $type = 'DWord' }
     New-ItemProperty -Path $layout.UninstallKey -Name $k -Value $props[$k] -PropertyType $type -Force | Out-Null

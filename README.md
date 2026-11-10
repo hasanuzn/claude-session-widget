@@ -55,7 +55,7 @@ irm https://raw.githubusercontent.com/hasanuzn/claude-session-widget/main/get.ps
 No administrator rights are needed. Running the same installer again updates the widget. The installer:
 
 - copies the files to `%LOCALAPPDATA%\ClaudeSessionWidget`,
-- adds **Claude Session Widget**, **… - Settings** and **… - Uninstall** to the Start menu,
+- adds **Claude Session Widget** to the Start menu,
 - makes it start with Windows (you can turn this off in Settings),
 - adds it to **Settings → Apps → Installed apps**,
 - starts the widget.
@@ -75,8 +75,8 @@ in that case ask your IT team.
 
 <img src="docs/screenshots/settings.png" width="380" align="right" alt="Settings window">
 
-Open them with the ⚙ button on the card, **Settings…** in the tray icon's menu, or the
-**Claude Session Widget - Settings** Start menu shortcut. Changes apply immediately.
+Open them with the ⚙ button on the card or **Settings…** in the tray icon's menu. Changes apply
+immediately.
 
 | Setting | Default |
 |---|---|
@@ -124,7 +124,7 @@ Sessions that don't keep a task list show no progress bar, only their latest act
 
 ## Uninstall
 
-Use **Claude Session Widget - Uninstall** in the Start menu, **Installed apps**, or `Uninstall.cmd`
+Use **Settings → Apps → Installed apps** (Claude Session Widget → Uninstall), or `Uninstall.cmd`
 from the zip. To keep your settings: `Uninstall.cmd -KeepSettings`.
 
 ## Troubleshooting
@@ -175,12 +175,11 @@ tıklayın; açılan küçük kurulum penceresinde Windows açılışında başl
 irm https://raw.githubusercontent.com/hasanuzn/claude-session-widget/main/get.ps1 | iex
 ```
 
-Yönetici izni gerekmez; Başlat menüsüne kısayollar ekler, Windows açılınca başlatır (Ayarlar'dan
+Yönetici izni gerekmez; Başlat menüsüne tek bir kısayol ekler, Windows açılınca başlatır (Ayarlar'dan
 kapatılabilir) ve "Yüklü uygulamalar" listesine ekler. Betikler imzalı olmadığı için Windows ilk
 çalıştırmada "Bilinmeyen yayımcı" uyarısı gösterebilir: **Ek bilgi → Yine de çalıştır** deyin.
 
-**Ayarlar:** karttaki ⚙ düğmesi, tepsi menüsündeki **Ayarlar…** ya da Başlat menüsündeki
-**Claude Session Widget - Ayarlar**. Windows açılınca başlatma, her zaman üstte, açılış görünümü,
+**Ayarlar:** karttaki ⚙ düğmesi ya da tepsi menüsündeki **Ayarlar…**. Windows açılınca başlatma, her zaman üstte, açılış görünümü,
 dil (Otomatik / English / Türkçe), şeffaflık (%100–%60, fare üzerindeyken tam opak), Windows
 bildirimi, yanıp sönme, terminal oturumları, yenileme aralığı ve bitenlerin listede kalma süresi
 buradan değiştirilir.
@@ -189,7 +188,7 @@ buradan değiştirilir.
 güncellemeleri bunları değiştirirse widget'ın da güncellenmesi gerekebilir. Yalnızca Windows'ta
 çalışır.
 
-**Kaldırma:** Başlat menüsünden **Claude Session Widget - Kaldır**, "Yüklü uygulamalar" listesi ya da
+**Kaldırma:** **Ayarlar → Uygulamalar → Yüklü uygulamalar** listesinden ya da
 `Uninstall.cmd`. Ayarları korumak için: `Uninstall.cmd -KeepSettings`.
 
 **Sorun giderme:** hata kaydı `%TEMP%\claude-session-widget.log` dosyasındadır; bulunan oturumları

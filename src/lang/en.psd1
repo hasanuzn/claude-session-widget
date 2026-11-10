@@ -86,8 +86,6 @@
   SetupStepRegister = 'Adding to Installed apps'
   SetupStepDone = 'Finishing'
   SetupLnkDesc = 'Shows the Claude sessions running right now'
-  SetupLnkSettings = 'Settings'
-  SetupLnkUninstall = 'Uninstall'
   SetupNotFound = 'src\claude-session-widget.ps1 was not found next to the installer. Download the release zip again and extract all files.'
   SetupConsoleDone = 'Done. The widget is in the bottom-right corner of your screen.'
   SetupConsoleHint = 'Start menu > {0} to reopen it, change settings or uninstall.'

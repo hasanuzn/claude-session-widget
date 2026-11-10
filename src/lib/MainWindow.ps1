@@ -473,12 +473,6 @@ function Initialize-TrayIcon {
   $script:icoDone = New-TrayIcon $C.Green
   $script:icoDim = New-TrayIcon $C.Dim
 
-  # Icon file for shortcuts (the installer also creates one)
-  $iconFile = Join-Path $AppDir 'widget.ico'
-  if (-not $IsDemo -and -not (Test-Path -LiteralPath $iconFile)) {
-    try { $fs = [System.IO.File]::Create($iconFile); $script:icoNormal.Save($fs); $fs.Close() } catch {}
-  }
-
   $script:tray = New-Object System.Windows.Forms.NotifyIcon
   $tray.Icon = $icoNormal
   $tray.Text = (T 'AppTitle')

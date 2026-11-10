@@ -85,8 +85,6 @@
   SetupStepRegister = 'Yüklü uygulamalara ekleniyor'
   SetupStepDone = 'Tamamlanıyor'
   SetupLnkDesc = 'Şu anda çalışan Claude oturumlarını gösterir'
-  SetupLnkSettings = 'Ayarlar'
-  SetupLnkUninstall = 'Kaldır'
   SetupNotFound = 'Kurulum dosyasının yanında src\claude-session-widget.ps1 bulunamadı. Sürüm ZIP''ini yeniden indirip tüm dosyaları çıkarın.'
   SetupConsoleDone = 'Kurulum tamam. Widget ekranınızın sağ alt köşesinde.'
   SetupConsoleHint = 'Başlat menüsü > {0} ile yeniden açabilir, ayarlarını değiştirebilir ya da kaldırabilirsiniz.'

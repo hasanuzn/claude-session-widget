@@ -44,7 +44,8 @@ try {
   Set-Location $env:TEMP
   foreach ($name in $AppName, $LegacyName) {
     Remove-Item -LiteralPath (Join-Path $Startup "$name.lnk") -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath (Join-Path $Programs $name) -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $Programs "$name.lnk") -Force -ErrorAction SilentlyContinue   # Start menu entry
+    Remove-Item -LiteralPath (Join-Path $Programs $name) -Recurse -Force -ErrorAction SilentlyContinue  # older Start menu folder
   }
   foreach ($key in $UninstallKeys) { Remove-Item -LiteralPath $key -Recurse -Force -ErrorAction SilentlyContinue }
   foreach ($dir in $InstallDirs) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }

@@ -15,12 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Start menu has a single **Claude Session Widget** entry; the separate Settings and Uninstall
+  shortcuts are gone (settings open from the widget, uninstall from Installed apps).
+
 ### Deprecated
 
 ### Removed
 
 ### Fixed
 
+- Start menu, Startup and Installed apps entries showed a blank icon. The app now ships a proper
+  multi-size icon (`src/assets/claude-session-widget.ico`, made by `tools/New-Icon.ps1`).
 - The widget and its settings window no longer appear in Alt+Tab (they are now tool windows).
 
 ### Security
