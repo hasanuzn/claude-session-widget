@@ -34,7 +34,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$AppVersion = '1.0.0'
+$AppVersion = '1.1.0'
 $RepoUrl = 'https://github.com/hasanuzn/claude-session-widget'
 $AppDir = $PSScriptRoot
 $LibDir = Join-Path $AppDir 'lib'

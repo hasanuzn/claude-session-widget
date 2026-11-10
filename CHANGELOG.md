@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [1.1.0] - 2026-11-10
+
+### Added
+
 - A simple setup window: `Install.cmd` now opens it (welcome with "start with Windows" and
   "open when done" options, progress, done), in English or Turkish. It also updates an existing
   install. `install.ps1` remains for console and scripted installs.
@@ -18,17 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Start menu has a single **Claude Session Widget** entry; the separate Settings and Uninstall
   shortcuts are gone (settings open from the widget, uninstall from Installed apps).
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - Start menu, Startup and Installed apps entries showed a blank icon. The app now ships a proper
   multi-size icon (`src/assets/claude-session-widget.ico`, made by `tools/New-Icon.ps1`).
 - The widget and its settings window no longer appear in Alt+Tab (they are now tool windows).
-
-### Security
 
 ## [1.0.0] - 2026-11-10
 
@@ -64,5 +72,6 @@ First public release.
 - CI on Windows PowerShell 5.1 (script checks, PSScriptAnalyzer, Pester, smoke test) and a release
   workflow that publishes a zip on version tags.
 
-[Unreleased]: https://github.com/hasanuzn/claude-session-widget/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/hasanuzn/claude-session-widget/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/hasanuzn/claude-session-widget/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/hasanuzn/claude-session-widget/releases/tag/v1.0.0
