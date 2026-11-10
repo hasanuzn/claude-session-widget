@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Windows PowerShell 5.1
+    runs-on: windows-latest
+    defaults:
+      run:
+        # Windows PowerShell 5.1 (powershell.exe), not pwsh: the app targets 5.1.
+        shell: powershell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show PowerShell version
+        run: $PSVersionTable | Format-Table -AutoSize | Out-String -Width 200
+
+      - name: Install Pester 5 and PSScriptAnalyzer
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.0 -MaximumVersion 5.99.99 -Force -SkipPublisherCheck -Scope CurrentUser
+          Install-Module PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
+          Get-Module Pester, PSScriptAnalyzer -ListAvailable | Format-Table Name, Version, ModuleBase -AutoSize | Out-String -Width 200
+
+      - name: Check script syntax and encoding
+        run: |
+          & .\tools\Test-Scripts.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: PSScriptAnalyzer (errors fail, warnings reported)
+        run: |
+          & .\tools\Invoke-Lint.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Pester tests
+        run: |
+          & .\tools\Invoke-Tests.ps1 -ResultFile testResults.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pester-results
+          path: testResults.xml
+          if-no-files-found: ignore
+
+      - name: Smoke test (-Test mode)
+        run: |
+          $out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File src\claude-session-widget.ps1 -Test
+          $code = $LASTEXITCODE
+          $out | ForEach-Object { "$_" }
+          if ($code -ne 0) { Write-Host "::error::-Test exited with code $code"; exit 1 }
+          if (-not ($out -match 'No sessions')) { Write-Host '::warning::-Test output did not contain the "no sessions" line' }
+          exit 0

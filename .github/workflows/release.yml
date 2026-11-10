@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: windows-latest
+    defaults:
+      run:
+        # Windows PowerShell 5.1 (powershell.exe), not pwsh: the app targets 5.1.
+        shell: powershell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check tag matches $AppVersion
+        id: version
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $tagVersion = $tag -replace '^v', ''
+          $appVersion = (& .\tools\Build-Release.ps1 -ShowVersion | Select-Object -Last 1)
+          Write-Host "Tag: $tag  ->  $tagVersion   AppVersion: $appVersion"
+          if ($tagVersion -ne $appVersion) {
+            Write-Host "::error::Tag $tag does not match `$AppVersion = '$appVersion' in src\claude-session-widget.ps1"
+            exit 1
+          }
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "version=$tagVersion`n")
+
+      - name: Install Pester 5
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.0 -MaximumVersion 5.99.99 -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Check script syntax and encoding
+        run: |
+          & .\tools\Test-Scripts.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Pester tests
+        run: |
+          & .\tools\Invoke-Tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build release zip
+        id: build
+        run: |
+          $zip = & .\tools\Build-Release.ps1 -Version '${{ steps.version.outputs.version }}' | Select-Object -Last 1
+          if (-not (Test-Path -LiteralPath $zip)) { Write-Host "::error::Release zip was not created"; exit 1 }
+          Write-Host "Zip: $zip"
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "zip=$zip`n")
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: dist/*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true

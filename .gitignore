@@ -3,3 +3,4 @@ src/widget.ico
 *.log
 Thumbs.db
 desktop.ini
+dist/
