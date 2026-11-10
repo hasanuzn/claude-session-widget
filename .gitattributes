@@ -1,7 +1,7 @@
 # Windows scripts are stored byte-for-byte (CRLF line endings, UTF-8 BOM)
 # so ZIP downloads and raw GitHub URLs work as-is.
-*.ps1 -text
-*.cmd -text
-*.vbs -text
-*.md  text eol=lf
+*.ps1  -text
+*.psd1 -text
+*.cmd  -text
+*.md   text eol=lf
 LICENSE text eol=lf

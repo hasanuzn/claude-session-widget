@@ -1,19 +1,25 @@
 ﻿#Requires -Version 5.1
 <#
-  Claude Session Widget — uninstaller / kaldırma
-    -KeepSettings   Keep settings (%APPDATA%\ClaudeOturumWidget) / Ayarları silme
-    -Quiet          No prompts or messages / Soru ve mesaj gösterme
+  Claude Session Widget — uninstaller
+  Removes the current install and anything left by the older
+  "Claude Oturum Widget" version.
+    -KeepSettings   Keep settings (%APPDATA%\ClaudeSessionWidget)
+    -Quiet          No prompts or messages
 #>
 param([switch]$KeepSettings, [switch]$Quiet)
 
 $ErrorActionPreference = 'Stop'
 $AppName = 'Claude Session Widget'
 $LegacyName = 'Claude Oturum Widget'
-$Dest = Join-Path $env:LOCALAPPDATA 'ClaudeOturumWidget'
-$SettingsDir = Join-Path $env:APPDATA 'ClaudeOturumWidget'
 $Programs = [Environment]::GetFolderPath('Programs')
 $Startup = [Environment]::GetFolderPath('Startup')
-$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeOturumWidget'
+$UninstallRoot = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+
+# Current and legacy locations
+$InstallDirs = @((Join-Path $env:LOCALAPPDATA 'ClaudeSessionWidget'), (Join-Path $env:LOCALAPPDATA 'ClaudeOturumWidget'))
+$SettingsDirs = @((Join-Path $env:APPDATA 'ClaudeSessionWidget'), (Join-Path $env:APPDATA 'ClaudeOturumWidget'))
+$UninstallKeys = @("$UninstallRoot\ClaudeSessionWidget", "$UninstallRoot\ClaudeOturumWidget")
+$TempFiles = @('claude-session-widget.signal', 'claude-session-widget-demo.signal', 'oturum-widget.signal')
 
 $tr = [Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'tr'
 function M([string]$en, [string]$trText) { if ($tr) { $trText } else { $en } }
@@ -26,9 +32,12 @@ if (-not $Quiet) {
 }
 
 try {
-  # Close the running widget
-  Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -like '*oturum-widget.ps1*' -and $_.ProcessId -ne $PID } |
+  # Close running widgets (old and new script names)
+  Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'" -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.ProcessId -ne $PID -and
+      ($_.CommandLine -like '*oturum-widget.ps1*' -or $_.CommandLine -like '*claude-session-widget.ps1*')
+    } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
   Start-Sleep -Milliseconds 600
 
@@ -37,10 +46,12 @@ try {
     Remove-Item -LiteralPath (Join-Path $Startup "$name.lnk") -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath (Join-Path $Programs $name) -Recurse -Force -ErrorAction SilentlyContinue
   }
-  Remove-Item -LiteralPath $UninstallKey -Recurse -Force -ErrorAction SilentlyContinue
-  Remove-Item -LiteralPath $Dest -Recurse -Force -ErrorAction SilentlyContinue
-  if (-not $KeepSettings) { Remove-Item -LiteralPath $SettingsDir -Recurse -Force -ErrorAction SilentlyContinue }
-  Remove-Item -LiteralPath (Join-Path $env:TEMP 'oturum-widget.signal') -ErrorAction SilentlyContinue
+  foreach ($key in $UninstallKeys) { Remove-Item -LiteralPath $key -Recurse -Force -ErrorAction SilentlyContinue }
+  foreach ($dir in $InstallDirs) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+  if (-not $KeepSettings) {
+    foreach ($dir in $SettingsDirs) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+  }
+  foreach ($f in $TempFiles) { Remove-Item -LiteralPath (Join-Path $env:TEMP $f) -ErrorAction SilentlyContinue }
 
   if (-not $Quiet) { [void][System.Windows.MessageBox]::Show((M "$AppName was uninstalled." "$AppName kaldırıldı."), $AppName, 'OK', 'Information') }
 }
