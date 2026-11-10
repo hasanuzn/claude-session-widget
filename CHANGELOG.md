@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The widget and its settings window no longer appear in Alt+Tab (they are now tool windows).
+
 ### Security
 
 ## [1.0.0] - 2026-11-10

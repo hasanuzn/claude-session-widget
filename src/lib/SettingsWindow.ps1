@@ -128,6 +128,7 @@ $body
 </Window>
 "@
   $sw = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $sx))
+  Set-ToolWindowStyle -Window $sw
   $state.SettingsWin = $sw
   $find = { param($n) $sw.FindName($n) }
   $pill = { param($prefix, $value) $sw.FindName((Get-PillName $prefix ([string]$value))) }

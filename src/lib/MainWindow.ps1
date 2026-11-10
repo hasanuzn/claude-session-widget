@@ -42,6 +42,32 @@ function Hide-ConsoleWindow {
   } catch {}
 }
 
+<#
+  Keeps a window out of Alt+Tab (and the taskbar) by giving it the
+  WS_EX_TOOLWINDOW extended style and removing WS_EX_APPWINDOW.
+  Call before the window is shown; the style is applied once its handle exists.
+#>
+function Set-ToolWindowStyle {
+  param([Parameter(Mandatory)][System.Windows.Window]$Window)
+  try {
+    if (-not ('ClaudeSessionWidget.NativeWindow' -as [type])) {
+      Add-Type -Namespace ClaudeSessionWidget -Name NativeWindow -MemberDefinition @'
+[DllImport("user32.dll", EntryPoint = "GetWindowLong")] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+[DllImport("user32.dll", EntryPoint = "SetWindowLong")] public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+'@
+    }
+  } catch { return }
+  $Window.Add_SourceInitialized({
+      try {
+        $hwnd = (New-Object System.Windows.Interop.WindowInteropHelper($this)).Handle
+        $GWL_EXSTYLE = -20; $WS_EX_TOOLWINDOW = 0x80; $WS_EX_APPWINDOW = 0x40000
+        $style = [ClaudeSessionWidget.NativeWindow]::GetWindowLong($hwnd, $GWL_EXSTYLE)
+        $style = ($style -bor $WS_EX_TOOLWINDOW) -band (-bnot $WS_EX_APPWINDOW)
+        [void][ClaudeSessionWidget.NativeWindow]::SetWindowLong($hwnd, $GWL_EXSTYLE, $style)
+      } catch {}
+    })
+}
+
 # ------------------------------------------------------- Background scanning
 
 function New-SharedState {
@@ -632,6 +658,7 @@ function Initialize-MainWindow {
     'Subtitle', 'BtnSettings', 'BtnPin', 'BtnMin', 'BtnClose', 'List') { $ui[$n] = $win.FindName($n) }
 
   $win.Topmost = [bool]$settings.Topmost
+  Set-ToolWindowStyle -Window $win
   $win.Opacity = Get-RestOpacity
   $win.Add_MouseEnter({ $win.Opacity = 1.0 })
   $win.Add_MouseLeave({ $win.Opacity = Get-RestOpacity })
