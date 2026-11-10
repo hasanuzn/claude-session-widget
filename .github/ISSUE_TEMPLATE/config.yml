@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: README and troubleshooting
+    url: https://github.com/hasanuzn/claude-session-widget#readme
+    about: Installation, settings, how it works and troubleshooting tips.
+  - name: Report a security vulnerability
+    url: https://github.com/hasanuzn/claude-session-widget/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

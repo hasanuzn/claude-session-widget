@@ -1,0 +1,46 @@
+name: Translation
+description: Request a new language, offer a translation, or report a wrong string.
+title: "[Translation]: "
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The UI strings live in `src/lang/*.psd1`. Adding a language means copying `en.psd1` to `<code>.psd1` and translating it.
+        See [Adding a language](https://github.com/hasanuzn/claude-session-widget/blob/main/CONTRIBUTING.md#adding-a-language) in CONTRIBUTING.md.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this about?
+      options:
+        - Request a new language
+        - I can translate into a new language
+        - Fix or improve an existing translation
+    validations:
+      required: true
+
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: Name of the language and its two-letter ISO code.
+      placeholder: "Deutsch (de)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: For a fix, list the key or the current text and your suggested text. For an offer, say whether you will open a pull request.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: native
+    attributes:
+      label: About you
+      options:
+        - label: I'm a native or fluent speaker of this language.
+        - label: I'll open a pull request with the translation.

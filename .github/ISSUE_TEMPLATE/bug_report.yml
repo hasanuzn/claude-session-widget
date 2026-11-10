@@ -1,0 +1,104 @@
+name: Bug report
+description: Something doesn't work or shows the wrong sessions.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please search [existing issues](https://github.com/hasanuzn/claude-session-widget/issues) first.
+
+        **Privacy:** session titles, project names, paths and prompts can be private. Please redact them from logs, `-Test` output and screenshots before posting.
+        Security problems should be reported privately, see [SECURITY.md](https://github.com/hasanuzn/claude-session-widget/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a session in the Claude desktop app (WSL)
+        2. Open the card
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: widget-version
+    attributes:
+      label: Widget version
+      description: Shown at the bottom of the Settings window, or in Settings > Apps > Installed apps.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      description: Run `winver`.
+      placeholder: "Windows 11 24H2 (26100.x)"
+    validations:
+      required: true
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude app / Claude Code CLI version
+      description: Claude desktop app version (Help > About) and/or the output of `claude --version`.
+      placeholder: "Claude 1.x.y / Claude Code 2.x.y"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: session-type
+    attributes:
+      label: Session type
+      description: Which kinds of sessions are affected?
+      options:
+        - label: Local (Claude desktop app)
+        - label: WSL (Claude desktop app)
+        - label: SSH (Claude desktop app)
+        - label: Terminal (Claude Code CLI)
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log excerpt
+      description: Relevant lines from `%TEMP%\claude-session-widget.log`. Redact private names and paths.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: test-output
+    attributes:
+      label: Output of -Test
+      description: |
+        Run the command below and paste the output. **Replace project and session names with placeholders before posting.**
+        `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\ClaudeSessionWidget\claude-session-widget.ps1" -Test`
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag and drop an image here if it helps. Make sure no private information is visible.
+    validations:
+      required: false
