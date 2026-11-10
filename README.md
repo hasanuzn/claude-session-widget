@@ -37,7 +37,12 @@ which one is working on what, how many steps are done, and which one just finish
 
 1. Download `claude-session-widget-<version>.zip` from the
    [latest release](https://github.com/hasanuzn/claude-session-widget/releases/latest) and extract it.
-2. Double-click **`Install.cmd`**.
+2. Double-click **`Install.cmd`**. A small setup window opens: choose whether it starts with
+   Windows and press **Install**.
+
+<p align="center">
+  <img src="docs/screenshots/setup.png" width="420" alt="Setup window with two options and an Install button">
+</p>
 
 ### One line
 
@@ -47,7 +52,7 @@ Open PowerShell and paste:
 irm https://raw.githubusercontent.com/hasanuzn/claude-session-widget/main/get.ps1 | iex
 ```
 
-No administrator rights are needed. The installer:
+No administrator rights are needed. Running the same installer again updates the widget. The installer:
 
 - copies the files to `%LOCALAPPDATA%\ClaudeSessionWidget`,
 - adds **Claude Session Widget**, **… - Settings** and **… - Uninstall** to the Start menu,
@@ -55,7 +60,8 @@ No administrator rights are needed. The installer:
 - adds it to **Settings → Apps → Installed apps**,
 - starts the widget.
 
-Options: `Install.cmd -NoStartup` (don't start with Windows), `Install.cmd -NoLaunch` (don't start now).
+For a console or scripted install use `install.ps1` instead of the window:
+`powershell -ExecutionPolicy Bypass -File install.ps1 [-NoStartup] [-NoLaunch]`.
 
 ### "Windows protected your PC" / unknown publisher
 
@@ -162,7 +168,8 @@ olarak Windows görüntü dilini izler).
 
 **Kurulum:** [son sürümden](https://github.com/hasanuzn/claude-session-widget/releases/latest)
 `claude-session-widget-<sürüm>.zip` dosyasını indirip açın ve **`Install.cmd`** dosyasına çift
-tıklayın. Ya da PowerShell'e şunu yapıştırın:
+tıklayın; açılan küçük kurulum penceresinde Windows açılışında başlayıp başlamayacağını seçip
+**Kur**'a basın (aynı dosya kurulu sürümü günceller). Ya da PowerShell'e şunu yapıştırın:
 
 ```powershell
 irm https://raw.githubusercontent.com/hasanuzn/claude-session-widget/main/get.ps1 | iex

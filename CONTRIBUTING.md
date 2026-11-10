@@ -72,7 +72,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -STA -File src\claude-session-widg
 ```
 
 The README screenshots in `docs/screenshots/` are made this way (`card`, `icon`, `settings` in
-English, `card-tr` in Turkish), so please regenerate them when a UI change affects them.
+English, `card-tr` in Turkish), so please regenerate them when a UI change affects them. The setup
+window's screenshots come from `installer\Setup.ps1 -Page welcome -Language en -Screenshot docs\screenshots\setup.png`
+(and `-Page done` for `setup-done.png`).
 
 If an installed copy is running, quit it from the tray icon first so you don't confuse the two.
 Errors are written to `%TEMP%\claude-session-widget.log`.
@@ -94,7 +96,9 @@ Errors are written to `%TEMP%\claude-session-widget.log`.
 | `tools/Build-Release.ps1` | Builds `dist/claude-session-widget-<version>.zip`. |
 | `.github/workflows/ci.yml` | CI on `windows-latest` with Windows PowerShell 5.1: Test-Scripts, PSScriptAnalyzer, Pester, `-Test` smoke run. |
 | `.github/workflows/release.yml` | On a `vX.Y.Z` tag: builds the zip and publishes a GitHub Release. |
-| `install.ps1`, `uninstall.ps1`, `Install.cmd`, `Uninstall.cmd` | Per-user installer/uninstaller (no admin). Installs to `%LOCALAPPDATA%\ClaudeSessionWidget`, adds Start menu shortcuts and an *Installed apps* entry. |
+| `installer/Installer.ps1` | Install/update logic shared by the setup window and `install.ps1` (functions only). Installs to `%LOCALAPPDATA%\ClaudeSessionWidget`, adds Start menu shortcuts and an *Installed apps* entry. |
+| `installer/Setup.ps1` | The setup window opened by `Install.cmd` (welcome → progress → done). `-Page welcome\|progress\|done\|error -Screenshot <png>` renders a page without installing. |
+| `install.ps1`, `uninstall.ps1`, `Install.cmd`, `Uninstall.cmd` | Console installer (used by `get.ps1` and scripts), uninstaller, and the double-click launchers. No admin rights needed. |
 | `get.ps1` | One-line installer (`irm … \| iex`). ASCII only. |
 
 ## How it works

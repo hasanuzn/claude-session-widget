@@ -1,8 +1,4 @@
 @echo off
-chcp 65001 >nul
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" %*
-if errorlevel 1 (
-  pause
-) else (
-  timeout /t 5 >nul 2>&1
-)
+rem Opens the Claude Session Widget setup window.
+rem For a console install (or extra options) run install.ps1 instead.
+start "" powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "%~dp0installer\Setup.ps1" %*

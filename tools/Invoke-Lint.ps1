@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-  Runs PSScriptAnalyzer on src\, install.ps1, uninstall.ps1 and get.ps1.
+  Runs PSScriptAnalyzer on src\, installer\, install.ps1, uninstall.ps1 and get.ps1.
   Prints errors and warnings; exits 1 only when there is an Error (or a
   ParseError) finding. Warnings are reported but do not fail the run.
 
@@ -18,7 +18,7 @@ if (-not (Get-Module PSScriptAnalyzer -ListAvailable)) {
 }
 Import-Module PSScriptAnalyzer
 
-$targets = @('src', 'install.ps1', 'uninstall.ps1', 'get.ps1') |
+$targets = @('src', 'installer', 'install.ps1', 'uninstall.ps1', 'get.ps1') |
   ForEach-Object { Join-Path $Root $_ } |
   Where-Object { Test-Path -LiteralPath $_ }
 

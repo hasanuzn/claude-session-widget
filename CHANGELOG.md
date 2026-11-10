@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A simple setup window: `Install.cmd` now opens it (welcome with "start with Windows" and
+  "open when done" options, progress, done), in English or Turkish. It also updates an existing
+  install. `install.ps1` remains for console and scripted installs.
+
 ### Changed
 
 ### Deprecated

@@ -3,7 +3,7 @@
   Builds the release archive dist\claude-session-widget-<version>.zip.
 
   The archive holds one top-level folder, claude-session-widget-<version>\,
-  with: src\ (whole folder), install.ps1, uninstall.ps1, Install.cmd,
+  with: src\ and installer\ (whole folders), install.ps1, uninstall.ps1, Install.cmd,
   Uninstall.cmd, README.md, LICENSE. Files are stored byte-for-byte (no
   line-ending or encoding conversion), so the BOM/CRLF scripts stay intact.
 
@@ -49,12 +49,14 @@ foreach ($name in 'install.ps1', 'uninstall.ps1', 'Install.cmd', 'Uninstall.cmd'
   if (-not (Test-Path -LiteralPath $path)) { throw "Required file is missing: $name" }
   [void]$items.Add([pscustomobject]@{ Path = $path; Entry = $name })
 }
-$srcDir = Join-Path $Root 'src'
-if (-not (Test-Path -LiteralPath $srcDir)) { throw 'Required folder is missing: src' }
-Get-ChildItem -LiteralPath $srcDir -Recurse -File | Sort-Object FullName | ForEach-Object {
-  if ($skipNames -contains $_.Name -or $skipExt -contains $_.Extension) { return }
-  $rel = $_.FullName.Substring($Root.Length + 1) -replace '\\', '/'
-  [void]$items.Add([pscustomobject]@{ Path = $_.FullName; Entry = $rel })
+foreach ($folder in 'src', 'installer') {
+  $dir = Join-Path $Root $folder
+  if (-not (Test-Path -LiteralPath $dir)) { throw "Required folder is missing: $folder" }
+  Get-ChildItem -LiteralPath $dir -Recurse -File | Sort-Object FullName | ForEach-Object {
+    if ($skipNames -contains $_.Name -or $skipExt -contains $_.Extension) { return }
+    $rel = $_.FullName.Substring($Root.Length + 1) -replace '\\', '/'
+    [void]$items.Add([pscustomobject]@{ Path = $_.FullName; Entry = $rel })
+  }
 }
 
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
