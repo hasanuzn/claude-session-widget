@@ -1,16 +1,10 @@
 [package]
 name = "claude-session-widget"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 egui = "0.34.3"
 egui_software_backend = "0.0.3"
 tray-icon = "0.26.1"
-
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true

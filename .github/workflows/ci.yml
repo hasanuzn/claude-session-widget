@@ -63,3 +63,48 @@ jobs:
           if ($code -ne 0) { Write-Host "::error::-Test exited with code $code"; exit 1 }
           if (-not ($out -match 'No sessions')) { Write-Host '::warning::-Test output did not contain the "no sessions" line' }
           exit 0
+
+  rust:
+    name: Rust 2.0 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14, ubuntu-22.04]
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app
+
+      - name: Linux libraries for the widget (tray, windowing)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libxdo-dev libayatana-appindicator3-dev libxkbcommon-dev
+
+      - name: Formatting (core)
+        run: cargo fmt -p claude-session-core --check
+
+      - name: Core tests
+        run: cargo test -p claude-session-core --locked
+
+      - name: Clippy (core)
+        run: cargo clippy -p claude-session-core --all-targets --locked -- -D warnings
+
+      - name: Scan tool smoke test
+        run: cargo run -q -p claude-session-core --bin claude-session-scan --locked
+
+      - name: Build the widget
+        run: cargo build -p claude-session-widget --release --locked

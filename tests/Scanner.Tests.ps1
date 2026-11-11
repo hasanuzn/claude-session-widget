@@ -273,6 +273,8 @@ Describe 'Get-ClaudeSession' {
       $regDir = Join-Path $script:ClaudeDir 'sessions'
       New-Item -ItemType Directory -Path $projDir, $regDir -Force | Out-Null
       Copy-Item -LiteralPath (Join-Path $script:FixtureDir 'plan-done-start.jsonl') -Destination (Join-Path $projDir "$id.jsonl")
+      # A copy keeps the fixture's old timestamp; make it fresh or the session counts as stale.
+      (Get-Item -LiteralPath (Join-Path $projDir "$id.jsonl")).LastWriteTime = Get-Date
       $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
       # The record's process must be alive, so use the test runner's own PID.
       $reg = [ordered]@{
