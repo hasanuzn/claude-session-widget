@@ -94,17 +94,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libxdo-dev libayatana-appindicator3-dev libxkbcommon-dev
 
-      - name: Formatting (core)
-        run: cargo fmt -p claude-session-core --check
+      - name: Formatting
+        run: cargo fmt --all --check
 
-      - name: Core tests
-        run: cargo test -p claude-session-core --locked
+      - name: Tests (core and widget)
+        run: cargo test --workspace --locked
 
       - name: Clippy (core)
         run: cargo clippy -p claude-session-core --all-targets --locked -- -D warnings
+
+      - name: Clippy (widget, Windows)
+        if: runner.os == 'Windows'
+        run: cargo clippy -p claude-session-widget --all-targets --locked -- -D warnings
 
       - name: Scan tool smoke test
         run: cargo run -q -p claude-session-core --bin claude-session-scan --locked
 
       - name: Build the widget
         run: cargo build -p claude-session-widget --release --locked
+
+      - name: Widget screenshot smoke test (no window)
+        run: cargo run -q -p claude-session-widget --release --locked -- --demo --view card --screenshot target/demo-card.png

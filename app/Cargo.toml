@@ -1,5 +1,6 @@
 [workspace]
 members = ["core", "widget"]
+exclude = ["vendor"]
 resolver = "3"
 
 [workspace.package]
@@ -13,3 +14,7 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# Local fix for timed repaints, see vendor/egui_software_backend/PATCHES.md
+[patch.crates-io]
+egui_software_backend = { path = "vendor/egui_software_backend" }
