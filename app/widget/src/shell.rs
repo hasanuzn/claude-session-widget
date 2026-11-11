@@ -6,7 +6,7 @@ use crate::feed::{self, FeedControl};
 use crate::platform::{self, Hwnd};
 use crate::settings::Settings;
 use crate::tray::{Tray, TrayCmd, TrayImage, TrayLabels};
-use crate::ui::{Action, BUBBLE_BADGE, BUBBLE_DISC, Page, Widget};
+use crate::ui::{Action, BUBBLE_BADGE, BUBBLE_DISC, CARD_RADIUS, Page, Widget};
 use crate::{TITLE, theme};
 use claude_session_core::{Session, now_ms};
 use egui::{Context, Vec2, ViewportCommand};
@@ -27,7 +27,8 @@ pub struct Shell {
     hwnd: Arc<AtomicIsize>,
     prepared: bool,
     requested_size: Option<Vec2>,
-    applied_shape: Option<(bool, i32)>,
+    /// Expanded, scale (%) and size (px) the window region was made for.
+    applied_shape: Option<(bool, i32, i32, i32)>,
     applied_topmost: Option<bool>,
     applied_alpha: Option<u8>,
     applied_hidden: Option<bool>,
@@ -185,11 +186,13 @@ impl Shell {
             && (hgt - (want.y * scale).round() as i32).abs() <= 2;
 
         // Shape: rounded card, or the bubble's circles.
-        let shape = (self.w.expanded, (scale * 100.0) as i32);
+        // Corners are cut with a window region, not the system's rounded corners: those come
+        // with a drop shadow that looks out of place around a small floating widget.
+        let shape = (self.w.expanded, (scale * 100.0) as i32, w, hgt);
         if size_ok && self.applied_shape != Some(shape) {
             if self.w.expanded {
-                platform::set_circle_region(h, None);
-                platform::set_round_corners(h, true);
+                platform::set_round_corners(h, false);
+                platform::set_round_rect_region(h, w, hgt, (CARD_RADIUS * scale).round() as i32);
             } else {
                 let s = |(x, y, rad): (f32, f32, f32)| (x * scale, y * scale, rad * scale + 1.0);
                 platform::set_circle_region(h, Some(&[s(BUBBLE_DISC), s(BUBBLE_BADGE)]));

@@ -13,7 +13,6 @@ pub fn render(widget: &mut Widget, out: &Path, scale: f32) -> Result<(), String>
     let ctx = Context::default();
     let have_mdl2 = theme::install(&ctx);
     widget.glyphs = theme::glyphs(have_mdl2);
-    widget.window_mode = false;
     ctx.set_pixels_per_point(scale);
 
     let now = now_ms();

@@ -15,9 +15,9 @@ mod imp {
     };
     use windows_sys::Win32::Graphics::Dwm::DwmSetWindowAttribute;
     use windows_sys::Win32::Graphics::Gdi::{
-        CombineRgn, CreateEllipticRgn, DeleteObject, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST,
-        MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint, MonitorFromWindow, RGN_OR,
-        SetWindowRgn,
+        CombineRgn, CreateEllipticRgn, CreateRoundRectRgn, DeleteObject, GetMonitorInfoW,
+        MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint,
+        MonitorFromWindow, RGN_OR, SetWindowRgn,
     };
     use windows_sys::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
     use windows_sys::Win32::System::Registry::{
@@ -154,6 +154,17 @@ mod imp {
                 &pref as *const u32 as *const c_void,
                 4,
             );
+        }
+    }
+
+    /// Clips the window to a rounded rectangle (size and corner radius in physical px).
+    /// Used instead of the system's rounded corners, which come with a drop shadow.
+    pub fn set_round_rect_region(hwnd: Hwnd, w: i32, hgt: i32, radius: i32) {
+        unsafe {
+            // The right and bottom edges are exclusive, hence the +1.
+            let rgn = CreateRoundRectRgn(0, 0, w + 1, hgt + 1, radius * 2, radius * 2);
+            // The system owns the region from here on.
+            SetWindowRgn(h(hwnd), rgn, TRUE);
         }
     }
 
@@ -382,6 +393,7 @@ mod imp {
     pub fn set_alpha(_: Hwnd, _: u8) {}
     pub fn set_click_through(_: Hwnd, _: bool) {}
     pub fn set_round_corners(_: Hwnd, _: bool) {}
+    pub fn set_round_rect_region(_: Hwnd, _: i32, _: i32, _: i32) {}
     pub fn set_circle_region(_: Hwnd, _: Option<&[(f32, f32, f32)]>) {}
     pub fn window_rect(_: Hwnd) -> Option<PxRect> {
         None

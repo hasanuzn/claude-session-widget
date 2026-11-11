@@ -10,6 +10,8 @@ pub const TEXT2: Color32 = Color32::from_rgb(0xC2, 0xC0, 0xB6);
 pub const MUTED: Color32 = Color32::from_rgb(0x8F, 0x8D, 0x86);
 pub const ACCENT: Color32 = Color32::from_rgb(0xD9, 0x77, 0x57);
 pub const GREEN: Color32 = Color32::from_rgb(0x7F, 0xB7, 0x7E);
+/// Sessions waiting for the person.
+pub const BLUE: Color32 = Color32::from_rgb(0x6E, 0x9E, 0xF5);
 pub const DIM: Color32 = Color32::from_rgb(0x55, 0x54, 0x4F);
 pub const INK: Color32 = Color32::from_rgb(0x1F, 0x1E, 0x1D);
 

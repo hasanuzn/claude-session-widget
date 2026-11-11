@@ -241,3 +241,53 @@ fn blank_lines_give_an_empty_result() {
     assert_eq!(r.total(), 0);
     assert_eq!(r.activity, "");
 }
+
+// --- wrap_up question (sessions waiting for an answer)
+
+fn person(text: &str) -> String {
+    json!({ "type": "user", "message": { "role": "user", "content": text } }).to_string()
+}
+
+#[test]
+fn wrap_up_keeps_its_question_until_the_person_replies() {
+    let ask = tool_line(
+        "mcp__ccd_turn__wrap_up",
+        json!({ "recap": "Done.", "ask": "  Push the branch?  " }),
+    );
+    // The tool result for wrap_up is a user record too, but not a reply.
+    let result = json!({ "type": "user", "message": { "role": "user", "content": [
+        { "type": "tool_result", "tool_use_id": "toolu_x", "content": "ok" } ] } })
+    .to_string();
+    // Something the app added on its own does not count either.
+    let meta =
+        json!({ "type": "user", "isMeta": true, "message": { "role": "user", "content": "note" } })
+            .to_string();
+
+    let p = replay(&[ask.clone(), result.clone(), meta]);
+    assert_eq!(p.question, "Push the branch?");
+    assert_eq!(p.activity, FINISHING);
+
+    let p = replay(&[ask.clone(), result.clone(), person("Yes")]);
+    assert_eq!(p.question, "", "a reply answers the question");
+
+    let blocks = json!({ "type": "user", "message": { "role": "user", "content": [
+        { "type": "text", "text": "Yes, push it" } ] } })
+    .to_string();
+    assert_eq!(replay(&[ask.clone(), blocks]).question, "");
+}
+
+#[test]
+fn any_later_tool_call_clears_the_question() {
+    let ask = tool_line(
+        "mcp__ccd_turn__wrap_up",
+        json!({ "recap": "r", "ask": "Ship it?" }),
+    );
+    let next = tool_line("Bash", json!({ "command": "ls", "description": "List" }));
+    assert_eq!(replay(&[ask, next]).question, "");
+}
+
+#[test]
+fn wrap_up_without_a_question_waits_for_nothing() {
+    let plain = tool_line("mcp__ccd_turn__wrap_up", json!({ "recap": "All done." }));
+    assert_eq!(replay(&[plain]).question, "");
+}

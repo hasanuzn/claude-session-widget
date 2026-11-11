@@ -4,7 +4,8 @@
 //!
 //! Data sources (undocumented internal formats of Claude Code, read-only):
 //! - `<claude dir>/sessions/<pid>.json`: one status record per running `claude`
-//!   process (`busy` / `idle`). Trusted only while that process is alive.
+//!   process (`busy` / `idle` / `waiting` + `waitingFor`). Trusted only while that
+//!   process is alive.
 //! - The Claude desktop app's session records (`…/claude-code-sessions/…/local_*.json`):
 //!   titles, WSL distro, transcript location; fallback "running" signal for SSH.
 //! - Transcripts, `<claude dir>/projects/<cwd slug>/<session id>.jsonl`: replayed
@@ -22,7 +23,7 @@ pub mod transcript;
 #[cfg(windows)]
 pub mod wsl;
 
-pub use model::{Location, Progress, Session, Step, StepStatus};
+pub use model::{Location, Progress, Session, Step, StepStatus, Waiting};
 pub use paths::Paths;
 pub use plan::{PlanState, replay_lines};
 pub use scan::Scanner;

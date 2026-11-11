@@ -70,13 +70,17 @@ fn main() {
         for s in &list {
             let p = &s.progress;
             println!(
-                "{}  [{}]  {}/{}  ▸ {}  ⎿ {}",
+                "{}  [{}]  {}/{}  ▸ {}  ⎿ {}{}",
                 s.name,
                 s.location,
                 p.done(),
                 p.total(),
                 p.current(),
-                p.activity
+                p.activity,
+                s.waiting
+                    .as_ref()
+                    .map(|w| format!("  ⏸ {w}"))
+                    .unwrap_or_default()
             );
         }
         return;

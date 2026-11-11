@@ -1,7 +1,8 @@
-//! Puts the sources together: which sessions are working now, and their progress.
+//! Puts the sources together: which sessions are working now or waiting for the person,
+//! and their progress.
 
 use crate::desktop::{DesktopRecord, find_record_files};
-use crate::model::{Location, Progress, Session};
+use crate::model::{Location, Progress, Session, Waiting};
 use crate::now_ms;
 use crate::paths::Paths;
 use crate::status::{StatusRecord, read_live_records};
@@ -39,7 +40,7 @@ impl Scanner {
         &self.paths
     }
 
-    /// The sessions working right now, oldest first. `include_terminal` also lists
+    /// The sessions working right now or waiting for the person, oldest first. `include_terminal` also lists
     /// sessions started with the `claude` CLI (not opened from the desktop app).
     pub fn scan(&mut self, include_terminal: bool) -> Vec<Session> {
         let now = now_ms();
@@ -94,18 +95,24 @@ impl Scanner {
             } else {
                 None
             };
-            let since = match &live {
-                Some(r) if !r.busy => continue,
-                Some(r) => r.since_ms,
-                None => {
-                    if !rec.looks_running(now, STALE_MS) {
-                        continue;
-                    }
-                    rec.latest_user_frame_at.unwrap_or(now)
+            // Working, waiting on an open prompt, or idle (maybe after asking a question).
+            let (since, mut waiting, idle) = match &live {
+                Some(r) if r.busy => (r.since_ms, None, false),
+                Some(r) if r.waiting_for.is_some() => (
+                    r.since_ms,
+                    r.waiting_for.clone().map(Waiting::Prompt),
+                    false,
+                ),
+                Some(r) => (r.since_ms, None, true),
+                None if rec.looks_running(now, STALE_MS) => {
+                    (rec.latest_user_frame_at.unwrap_or(now), None, false)
                 }
+                None => (rec.last_activity_at.unwrap_or(0.0), None, true),
             };
-            if !cli.is_empty() {
-                seen_cli.insert(cli.clone());
+            // An idle session is listed only while its last question is unanswered,
+            // and only for a while; there is no question to read over SSH.
+            if idle && (now - since > STALE_MS || (remote.is_some() && distro.is_none())) {
+                continue;
             }
 
             let cwd = rec.cwd.clone().unwrap_or_default();
@@ -128,6 +135,15 @@ impl Scanner {
                     (Location::Local, progress)
                 }
             };
+            if idle {
+                if progress.question.is_empty() {
+                    continue;
+                }
+                waiting = Some(Waiting::Question(progress.question.clone()));
+            }
+            if !cli.is_empty() {
+                seen_cli.insert(cli.clone());
+            }
             out.push(Session {
                 id: rec
                     .session_id
@@ -143,13 +159,14 @@ impl Scanner {
                 location,
                 since_ms: since,
                 progress,
+                waiting,
             });
         }
 
         // --- Sessions started from a terminal (claude CLI)
         if include_terminal {
             for (sid, r) in &local {
-                if !r.busy || r.entrypoint == "claude-desktop" || seen_cli.contains(sid) {
+                if !r.active() || r.entrypoint == "claude-desktop" || seen_cli.contains(sid) {
                     continue;
                 }
                 let mut progress = Progress::default();
@@ -171,6 +188,7 @@ impl Scanner {
                     location: Location::Terminal,
                     since_ms: r.since_ms,
                     progress,
+                    waiting: r.waiting_for.clone().map(Waiting::Prompt),
                 });
             }
         }

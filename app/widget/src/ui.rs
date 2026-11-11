@@ -6,7 +6,7 @@ use crate::i18n::{self, Strings};
 use crate::settings::Settings;
 use crate::theme::*;
 use claude_session_core::model::FINISHING;
-use claude_session_core::{Location, Session, StepStatus};
+use claude_session_core::{Location, Session, StepStatus, Waiting};
 use egui::{
     Align, Align2, Color32, CornerRadius, Label, Layout, Rect, Response, RichText, Sense, Stroke,
     StrokeKind, Ui, UiBuilder, Vec2, pos2, vec2,
@@ -14,6 +14,8 @@ use egui::{
 use std::collections::{HashMap, HashSet};
 
 pub const CARD_WIDTH: f32 = 380.0;
+/// Corner radius of the card, in points.
+pub const CARD_RADIUS: f32 = 10.0;
 const MAX_CARD_HEIGHT: f32 = 600.0;
 const MIN_CARD_HEIGHT: f32 = 120.0;
 
@@ -65,11 +67,10 @@ pub struct Widget {
     pub visible: bool,
     pub startup_enabled: bool,
     pub blink_on: bool,
-    /// Window mode: the OS rounds the corners; screenshots draw their own frame.
-    pub window_mode: bool,
     pub version: &'static str,
     open_rows: HashSet<String>,
-    prev: Option<HashMap<String, String>>,
+    /// Last scan: id -> (name, waiting).
+    prev: Option<HashMap<String, (String, bool)>>,
     card_height: f32,
 }
 
@@ -89,7 +90,6 @@ impl Widget {
             visible: true,
             startup_enabled: false,
             blink_on: false,
-            window_mode: true,
             version,
             open_rows: HashSet::new(),
             prev: None,
@@ -123,19 +123,38 @@ impl Widget {
         }
     }
 
-    /// New scan result. Sessions that disappeared are finished.
+    /// New scan result. Working sessions that disappeared are finished; sessions that
+    /// start waiting for the person raise a notification. A waiting session that drops
+    /// out (its question got too old, or it was archived) is not "finished".
     pub fn set_sessions(&mut self, list: Vec<Session>, now_ms: f64) -> Vec<Action> {
         let mut actions = Vec::new();
-        let current: HashMap<String, String> = list
+        let current: HashMap<String, (String, bool)> = list
             .iter()
-            .map(|s| (s.id.clone(), s.name.clone()))
+            .map(|s| (s.id.clone(), (s.name.clone(), s.waiting.is_some())))
             .collect();
         if let Some(prev) = &self.prev {
             let ended: Vec<(String, String)> = prev
                 .iter()
-                .filter(|(id, _)| !current.contains_key(*id))
-                .map(|(a, b)| (a.clone(), b.clone()))
+                .filter(|(id, (_, was_waiting))| !was_waiting && !current.contains_key(*id))
+                .map(|(id, (name, _))| (id.clone(), name.clone()))
                 .collect();
+            let new_waiting: Vec<&str> = list
+                .iter()
+                .filter(|s| s.waiting.is_some() && prev.get(&s.id).is_none_or(|(_, w)| !w))
+                .map(|s| s.name.as_str())
+                .collect();
+            if !new_waiting.is_empty() && self.settings.notify {
+                let body = if new_waiting.len() == 1 {
+                    new_waiting[0].to_string()
+                } else {
+                    self.strings
+                        .f("WaitMany", &[&new_waiting.len().to_string()])
+                };
+                actions.push(Action::Notify {
+                    title: self.strings.t("WaitTitle").to_string(),
+                    body,
+                });
+            }
             for (id, name) in &ended {
                 self.finished.retain(|f| &f.id != id);
                 self.finished.insert(
@@ -168,6 +187,16 @@ impl Widget {
         self.prev = Some(current);
         self.sessions = list;
         actions
+    }
+
+    /// Sessions that are working (not waiting for the person).
+    pub fn working(&self) -> usize {
+        self.sessions.iter().filter(|s| s.waiting.is_none()).count()
+    }
+
+    /// Sessions waiting for the person.
+    pub fn waiting(&self) -> usize {
+        self.sessions.len() - self.working()
     }
 
     pub fn set_finished_demo(&mut self, items: Vec<(String, f64)>) {
@@ -207,8 +236,12 @@ impl Widget {
             Sense::click_and_drag(),
         );
         let p = ui.painter();
-        let n = self.sessions.len();
-        let (glyph_color, ring) = if self.unseen > 0 && self.settings.blink {
+        let n = self.working();
+        let waiting = self.waiting();
+        // Waiting for the person comes first: it is the one thing that needs them.
+        let (glyph_color, ring) = if waiting > 0 {
+            (BLUE, BLUE)
+        } else if self.unseen > 0 && self.settings.blink {
             if self.blink_on {
                 (GREEN, GREEN)
             } else {
@@ -229,7 +262,9 @@ impl Widget {
             semibold(27.0),
             glyph_color,
         );
-        let badge = if self.unseen > 0 {
+        let badge = if waiting > 0 {
+            Some((waiting.to_string(), BLUE))
+        } else if self.unseen > 0 {
             Some((format!("✓{}", self.unseen), GREEN))
         } else if n > 0 {
             Some((n.to_string(), ACCENT))
@@ -255,23 +290,10 @@ impl Widget {
     fn card(&mut self, ui: &mut Ui, now_ms: f64, actions: &mut Vec<Action>) {
         let full = ui.max_rect();
         let p = ui.painter().clone();
-        if self.window_mode {
-            p.rect_filled(full, CornerRadius::ZERO, BG);
-            p.rect_stroke(
-                full,
-                CornerRadius::same(8),
-                Stroke::new(1.0_f32, LINE),
-                StrokeKind::Inside,
-            );
-        } else {
-            p.rect_filled(full, CornerRadius::same(12), BG);
-            p.rect_stroke(
-                full,
-                CornerRadius::same(12),
-                Stroke::new(1.0_f32, LINE),
-                StrokeKind::Inside,
-            );
-        }
+        // In a window the shell cuts the same corners with a window region.
+        let corner = CornerRadius::same(CARD_RADIUS as u8);
+        p.rect_filled(full, corner, BG);
+        p.rect_stroke(full, corner, Stroke::new(1.0_f32, LINE), StrokeKind::Inside);
 
         let inner = full.shrink2(vec2(14.0, 10.0));
         let mut child = ui.new_child(
@@ -311,6 +333,18 @@ impl Widget {
         let mut minimize = false;
         let mut pin = false;
         let mut hide = false;
+        // Drag the window by the header. Registered before the buttons so they sit on top.
+        // It senses clicks too, so a drag starts only once the mouse moves: a drag-only
+        // area would start the window move on the press and swallow the buttons' clicks.
+        let header_rect = Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), 34.0));
+        let drag = ui.interact(
+            header_rect,
+            ui.id().with("header-drag"),
+            Sense::click_and_drag(),
+        );
+        if drag.drag_started() {
+            actions.push(Action::StartDrag);
+        }
         let row = ui.horizontal(|ui| {
             ui.set_height(34.0);
             if self.page == Page::Settings {
@@ -350,15 +384,6 @@ impl Widget {
                 }
             });
         });
-        // Drag the window by the header (buttons keep their clicks).
-        let drag = ui.interact(
-            row.response.rect,
-            ui.id().with("header-drag"),
-            Sense::drag(),
-        );
-        if drag.drag_started() {
-            actions.push(Action::StartDrag);
-        }
         if back {
             self.page = Page::Sessions;
         }
@@ -382,12 +407,20 @@ impl Widget {
 
     pub fn subtitle(&self) -> String {
         let s = &self.strings;
-        let n = self.sessions.len();
+        let (n, waiting) = (self.working(), self.waiting());
         let mut sub = if n > 0 {
             s.f("NRunning", &[&n.to_string()])
+        } else if waiting > 0 {
+            String::new()
         } else {
             s.t("NoWork").to_string()
         };
+        if waiting > 0 {
+            if !sub.is_empty() {
+                sub.push_str(" · ");
+            }
+            sub.push_str(&s.f("NWaiting", &[&waiting.to_string()]));
+        }
         if !self.finished.is_empty() {
             sub.push_str(" · ");
             sub.push_str(&s.f("NFinished", &[&self.finished.len().to_string()]));
@@ -411,8 +444,31 @@ impl Widget {
             ui.add_space(10.0);
             return;
         }
-        for i in 0..self.sessions.len() {
-            if i > 0 {
+        let (waiting, working): (Vec<usize>, Vec<usize>) =
+            (0..self.sessions.len()).partition(|&i| self.sessions[i].waiting.is_some());
+        if !waiting.is_empty() {
+            ui.label(
+                RichText::new(self.strings.t("Waiting"))
+                    .font(semibold(10.0))
+                    .color(BLUE),
+            );
+            ui.add_space(4.0);
+            for (k, &i) in waiting.iter().enumerate() {
+                if k > 0 {
+                    ui.add_space(4.0);
+                    separator(ui, 0.6);
+                    ui.add_space(4.0);
+                }
+                self.waiting_row(ui, i, now_ms);
+            }
+            if !working.is_empty() {
+                ui.add_space(8.0);
+                separator(ui, 1.0);
+                ui.add_space(8.0);
+            }
+        }
+        for (k, &i) in working.iter().enumerate() {
+            if k > 0 {
                 ui.add_space(4.0);
                 separator(ui, 0.6);
                 ui.add_space(4.0);
@@ -453,6 +509,48 @@ impl Widget {
                 self.finished.clear();
             }
         }
+    }
+
+    /// A session waiting for the person: its name, and the question it asked or what
+    /// kind of answer it needs.
+    fn waiting_row(&self, ui: &mut Ui, index: usize, now_ms: f64) {
+        let s = &self.sessions[index];
+        let strings = &self.strings;
+        let detail = match &s.waiting {
+            Some(Waiting::Question(q)) => q.clone(),
+            Some(Waiting::Prompt(reason)) => strings
+                .t(match reason.as_str() {
+                    "permission prompt" | "sandbox request" => "WaitPermission",
+                    "input needed" | "worker request" | "goal proposal" => "WaitInput",
+                    "dialog open" => "WaitDialog",
+                    _ => "WaitOther",
+                })
+                .to_string(),
+            None => return,
+        };
+        ui.horizontal(|ui| {
+            ui.add_sized(
+                [12.0, 18.0],
+                Label::new(RichText::new("●").font(regular(9.0)).color(BLUE)),
+            );
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.label(
+                    RichText::new(elapsed(strings, now_ms - s.since_ms))
+                        .font(regular(11.0))
+                        .color(MUTED),
+                );
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    ui.add(
+                        Label::new(RichText::new(&s.name).font(semibold(13.0)).color(TEXT))
+                            .truncate(),
+                    );
+                });
+            });
+        });
+        ui.horizontal(|ui| {
+            ui.add_space(18.0);
+            ui.add(Label::new(RichText::new(detail).font(regular(12.0)).color(TEXT2)).truncate());
+        });
     }
 
     fn session_row(&mut self, ui: &mut Ui, index: usize, now_ms: f64) {
@@ -914,4 +1012,119 @@ fn pill_row(
         }
     });
     changed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egui::{Context, Event, Modifiers, PointerButton, Pos2, RawInput};
+
+    fn card() -> (Context, Widget) {
+        let ctx = Context::default();
+        let have_mdl2 = install(&ctx);
+        let mut w = Widget::new(Settings::default(), have_mdl2, "test");
+        w.set_expanded(true);
+        (ctx, w)
+    }
+
+    /// Runs one frame per event list and collects the actions.
+    fn frames(ctx: &Context, w: &mut Widget, frames: Vec<Vec<Event>>) -> Vec<Action> {
+        let mut actions = Vec::new();
+        for events in frames {
+            let input = RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, w.desired_size())),
+                events,
+                ..Default::default()
+            };
+            let _ = ctx.run_ui(input, |ui| actions.extend(w.draw(ui, 0.0)));
+        }
+        actions
+    }
+
+    fn button(pos: Pos2, pressed: bool) -> Event {
+        Event::PointerButton {
+            pos,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::default(),
+        }
+    }
+
+    fn session(id: &str, waiting: Option<Waiting>) -> Session {
+        Session {
+            id: id.into(),
+            name: format!("name-{id}"),
+            cwd: String::new(),
+            location: Location::Local,
+            since_ms: 0.0,
+            progress: Default::default(),
+            waiting,
+        }
+    }
+
+    #[test]
+    fn waiting_sessions_notify_and_never_count_as_finished() {
+        let (_, mut w) = card();
+        let ask = || Some(Waiting::Question("Merge?".into()));
+        assert!(w.set_sessions(vec![session("a", None)], 0.0).is_empty());
+
+        // a stops to ask a question: a notification, and it is not finished.
+        let acts = w.set_sessions(vec![session("a", ask())], 1.0);
+        assert!(
+            matches!(&acts[..], [Action::Notify { title, body }]
+                if title == w.strings.t("WaitTitle") && body == "name-a"),
+            "{acts:?}"
+        );
+        assert!(w.finished.is_empty());
+        assert_eq!((w.working(), w.waiting()), (0, 1));
+
+        // Still waiting: no second notification.
+        assert!(w.set_sessions(vec![session("a", ask())], 2.0).is_empty());
+
+        // The question drops out (too old): not reported as finished.
+        assert!(w.set_sessions(vec![], 3.0).is_empty());
+        assert!(w.finished.is_empty());
+
+        // A working session that ends is finished, as before.
+        w.set_sessions(vec![session("b", None)], 4.0);
+        w.set_sessions(vec![], 5.0);
+        assert_eq!(w.finished.len(), 1);
+        assert_eq!(w.finished[0].id, "b");
+    }
+
+    #[test]
+    fn header_buttons_get_their_clicks() {
+        let (ctx, mut w) = card();
+        // The close button: right edge of the header (card padding 14, button 26 wide).
+        let at = pos2(CARD_WIDTH - 14.0 - 13.0, 10.0 + 17.0);
+        let actions = frames(
+            &ctx,
+            &mut w,
+            vec![
+                vec![],
+                vec![Event::PointerMoved(at)],
+                vec![button(at, true)],
+                vec![button(at, false)],
+            ],
+        );
+        assert!(actions.contains(&Action::Hide), "{actions:?}");
+        assert!(!actions.contains(&Action::StartDrag), "{actions:?}");
+    }
+
+    #[test]
+    fn header_title_drags_the_window() {
+        let (ctx, mut w) = card();
+        let at = pos2(120.0, 27.0);
+        let actions = frames(
+            &ctx,
+            &mut w,
+            vec![
+                vec![],
+                vec![Event::PointerMoved(at)],
+                vec![button(at, true)],
+                vec![Event::PointerMoved(at + vec2(20.0, 10.0))],
+            ],
+        );
+        assert!(actions.contains(&Action::StartDrag), "{actions:?}");
+    }
 }

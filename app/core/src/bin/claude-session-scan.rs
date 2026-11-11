@@ -1,4 +1,4 @@
-//! Prints the Claude sessions working right now, one per line (same format as
+//! Prints the Claude sessions working right now or waiting for you, one per line (same format as
 //! 1.x `claude-session-widget.ps1 -Test`), then exits. Useful for bug reports.
 //!
 //!   claude-session-scan [--no-terminal]
@@ -15,13 +15,17 @@ fn main() {
     for s in &sessions {
         let p = &s.progress;
         println!(
-            "{}  [{}]  {}/{}  ▸ {}  ⎿ {}",
+            "{}  [{}]  {}/{}  ▸ {}  ⎿ {}{}",
             s.name,
             s.location,
             p.done(),
             p.total(),
             p.current(),
-            p.activity
+            p.activity,
+            s.waiting
+                .as_ref()
+                .map(|w| format!("  ⏸ {w}"))
+                .unwrap_or_default()
         );
     }
 }

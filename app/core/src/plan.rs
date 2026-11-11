@@ -6,8 +6,10 @@
 //!   pending one after it (or the first pending one when nothing is in progress).
 //! - `…update_plan` with `done: [n…]` (1-based) / `start: n`: completes / starts those steps.
 //! - `TodoWrite` with non-empty `todos`: replaces the list; the in-progress item shows `activeForm`.
-//! - `…wrap_up`: every step completed, activity = [`FINISHING`].
+//! - `…wrap_up`: every step completed, activity = [`FINISHING`]; its `ask` (a question
+//!   for the person) is kept in `question`.
 //! - Any other tool: activity = [`tool_text`].
+//! - `question` is cleared by any later tool call or by a message from the person.
 
 use crate::model::{FINISHING, Progress, Step, StepStatus};
 use crate::text::tool_text;
@@ -26,6 +28,11 @@ impl PlanState {
         let line = line.trim_end_matches('\r');
         // Cheap filter before parsing JSON.
         if !line.contains("\"tool_use\"") {
+            // A reply from the person answers the open question.
+            if !self.progress.question.is_empty() && is_person_message(line) {
+                self.progress.question.clear();
+                return true;
+            }
             return false;
         }
         let Ok(record) = serde_json::from_str::<Value>(line) else {
@@ -50,6 +57,8 @@ impl PlanState {
 
     /// Applies one tool call.
     pub fn apply_tool(&mut self, name: &str, input: Option<&Value>) {
+        // Any call after the question means the session went on without waiting.
+        self.progress.question.clear();
         let steps = &mut self.progress.steps;
         if name.ends_with("update_plan") {
             let Some(input) = input else { return };
@@ -121,6 +130,9 @@ impl PlanState {
                 s.status = StepStatus::Completed;
             }
             self.progress.activity = FINISHING.to_string();
+            self.progress.question = input
+                .map(|i| str_of(i, "ask").trim().to_string())
+                .unwrap_or_default();
         } else {
             self.progress.activity = tool_text(name, input);
         }
@@ -173,6 +185,27 @@ pub fn replay_lines<'a>(lines: impl IntoIterator<Item = &'a str>) -> Progress {
         state.apply_line(line);
     }
     state.progress
+}
+
+/// A message the person typed (or a button they clicked): a `user` record with text,
+/// not a tool result and not a message the app added on its own (`isMeta`).
+fn is_person_message(line: &str) -> bool {
+    if !line.contains("\"user\"") {
+        return false;
+    }
+    let Ok(record) = serde_json::from_str::<Value>(line.trim_end_matches('\r')) else {
+        return false;
+    };
+    if record.get("type").and_then(Value::as_str) != Some("user") || truthy(record.get("isMeta")) {
+        return false;
+    }
+    match record.pointer("/message/content") {
+        Some(Value::String(s)) => !s.trim().is_empty(),
+        Some(Value::Array(blocks)) => blocks
+            .iter()
+            .any(|b| b.get("type").and_then(Value::as_str) == Some("text")),
+        _ => false,
+    }
 }
 
 fn str_of(v: &Value, key: &str) -> String {

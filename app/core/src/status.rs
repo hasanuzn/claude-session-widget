@@ -1,5 +1,6 @@
 //! Status records written by every running `claude` process:
-//! `<claude dir>/sessions/<pid>.json` with `status: "busy" | "idle"`.
+//! `<claude dir>/sessions/<pid>.json` with `status: "busy" | "idle" | "waiting"`; a waiting
+//! record also says why in `waitingFor` (e.g. "permission prompt", "input needed").
 //! A record counts only while its process is alive (a crash can leave `busy` behind).
 
 use crate::process::is_alive;
@@ -13,6 +14,7 @@ struct RawRecord {
     pid: Option<serde_json::Value>,
     session_id: Option<String>,
     status: Option<String>,
+    waiting_for: Option<String>,
     status_updated_at: Option<f64>,
     started_at: Option<f64>,
     entrypoint: Option<String>,
@@ -26,6 +28,8 @@ pub struct StatusRecord {
     pub pid: u32,
     pub session_id: String,
     pub busy: bool,
+    /// `Some(reason)` while the session waits for the person (a prompt is open).
+    pub waiting_for: Option<String>,
     /// When the status last changed (falls back to the start time), ms since the epoch.
     pub since_ms: f64,
     /// e.g. "cli", "claude-desktop".
@@ -35,6 +39,11 @@ pub struct StatusRecord {
 }
 
 impl StatusRecord {
+    /// Busy, or waiting for the person.
+    pub fn active(&self) -> bool {
+        self.busy || self.waiting_for.is_some()
+    }
+
     /// Parses one record; `None` if it has no session id or pid.
     pub fn parse(json: &str) -> Option<Self> {
         let r: RawRecord = serde_json::from_str(json).ok()?;
@@ -48,6 +57,8 @@ impl StatusRecord {
             pid,
             session_id,
             busy: r.status.as_deref() == Some("busy"),
+            waiting_for: (r.status.as_deref() == Some("waiting"))
+                .then(|| r.waiting_for.unwrap_or_default()),
             since_ms: r
                 .status_updated_at
                 .filter(|v| *v > 0.0)

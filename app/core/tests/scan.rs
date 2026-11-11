@@ -2,7 +2,7 @@
 
 mod common;
 
-use claude_session_core::{Location, Paths, Scanner, now_ms};
+use claude_session_core::{Location, Paths, Scanner, Waiting, now_ms};
 use common::{Sandbox, fixture_path};
 use serde_json::json;
 use std::path::Path;
@@ -218,4 +218,103 @@ fn ssh_session_falls_back_to_turn_timestamps() {
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].name, "Remote work");
     assert_eq!(found[0].location, Location::Ssh);
+}
+
+// --- sessions waiting for the person
+
+fn write_waiting(p: &Paths, pid: u32, session_id: &str, cwd: &str, entrypoint: &str, why: &str) {
+    let now = now_ms();
+    let rec = json!({
+        "pid": pid, "sessionId": session_id, "cwd": cwd, "name": "Asks first", "status": "waiting",
+        "waitingFor": why, "entrypoint": entrypoint, "startedAt": now - 60000.0,
+        "statusUpdatedAt": now - 1000.0
+    });
+    std::fs::write(
+        p.sessions_dir().join(format!("{pid}.json")),
+        rec.to_string(),
+    )
+    .unwrap();
+}
+
+fn write_transcript_lines(p: &Paths, session_id: &str, cwd: &str, lines: &[String]) {
+    let dir = p
+        .projects_dir()
+        .join(claude_session_core::paths::cwd_slug(cwd));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join(format!("{session_id}.jsonl")),
+        lines.join("\n") + "\n",
+    )
+    .unwrap();
+}
+
+#[test]
+fn session_with_an_open_prompt_is_listed_as_waiting() {
+    let sb = Sandbox::new("waiting");
+    let p = paths(&sb);
+    let id = "12121212-3434-4565-8787-909090909090";
+    write_waiting(
+        &p,
+        std::process::id(),
+        id,
+        r"C:\work\w",
+        "cli",
+        "permission prompt",
+    );
+    let mut s = Scanner::new(p);
+    let found = s.scan(true);
+    assert_eq!(found.len(), 1);
+    assert_eq!(
+        found[0].waiting,
+        Some(Waiting::Prompt("permission prompt".into()))
+    );
+}
+
+#[test]
+fn idle_desktop_session_that_asked_a_question_is_listed_as_waiting() {
+    let sb = Sandbox::new("asked");
+    let p = paths(&sb);
+    let cwd = r"C:\work\asked";
+    let (asked, done) = (
+        "e1e1e1e1-0000-4000-8000-000000000001",
+        "e2e2e2e2-0000-4000-8000-000000000002",
+    );
+    write_status(
+        &p,
+        std::process::id(),
+        asked,
+        cwd,
+        "idle",
+        "claude-desktop",
+        "",
+    );
+    // The second session has no live record: the desktop record's timestamps say its
+    // turn is over, and it ended without a question.
+    let wrap = |ask: Option<&str>| {
+        let mut input = json!({ "recap": "Finished." });
+        if let Some(a) = ask {
+            input["ask"] = json!(a);
+        }
+        common::tool_line("mcp__ccd_turn__wrap_up", input)
+    };
+    write_transcript_lines(&p, asked, cwd, &[wrap(Some("Merge it?"))]);
+    write_transcript_lines(&p, done, cwd, &[wrap(None)]);
+    let now = now_ms();
+    for (file, cli) in [("local_asked.json", asked), ("local_done.json", done)] {
+        write_desktop(
+            &p.desktop_roots[0],
+            file,
+            json!({ "sessionId": file.trim_end_matches(".json"), "cliSessionId": cli, "title": file,
+                    "cwd": cwd, "lastTurnEdgeAt": now - 500.0, "latestUserFrameAt": now - 9000.0,
+                    "lastActivityAt": now - 500.0 }),
+        );
+    }
+    let mut s = Scanner::new(p);
+    let found = s.scan(true);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].id, "local_asked");
+    assert_eq!(
+        found[0].waiting,
+        Some(Waiting::Question("Merge it?".into()))
+    );
 }

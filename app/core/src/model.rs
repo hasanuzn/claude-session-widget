@@ -44,6 +44,9 @@ pub struct Progress {
     pub steps: Vec<Step>,
     /// e.g. "Bash · Run unit tests", or [`FINISHING`], or empty.
     pub activity: String,
+    /// The question the last turn ended with (`wrap_up`'s `ask`), until the person
+    /// replies or the session does anything else; empty otherwise.
+    pub question: String,
 }
 
 impl Progress {
@@ -93,14 +96,38 @@ impl fmt::Display for Location {
     }
 }
 
-/// A session that is working right now.
+/// Why a session is waiting for the person.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Waiting {
+    /// Something is open in the session and blocks it: a permission prompt, a question
+    /// card, a dialog. Holds Claude Code's reason, e.g. "permission prompt",
+    /// "input needed", "dialog open".
+    Prompt(String),
+    /// The session finished its turn by asking a question (the desktop app's next-step box).
+    Question(String),
+}
+
+impl fmt::Display for Waiting {
+    /// Plain English, for the command-line tools; the UI translates the reasons itself.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Prompt(reason) if reason.is_empty() => f.write_str("waiting"),
+            Self::Prompt(reason) => write!(f, "waiting: {reason}"),
+            Self::Question(q) => write!(f, "asked: {q}"),
+        }
+    }
+}
+
+/// A session that is working right now, or waiting for the person.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
     pub id: String,
     pub name: String,
     pub cwd: String,
     pub location: Location,
-    /// When it became busy (ms since the Unix epoch).
+    /// When it became busy, or started waiting (ms since the Unix epoch).
     pub since_ms: f64,
     pub progress: Progress,
+    /// `Some` when the session waits for the person instead of working.
+    pub waiting: Option<Waiting>,
 }

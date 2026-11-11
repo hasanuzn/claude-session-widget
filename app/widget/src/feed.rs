@@ -1,7 +1,9 @@
 //! Where the sessions come from: a background thread running the core scanner,
 //! or fixed demo data (for screenshots and UI work).
 
-use claude_session_core::{Location, Paths, Progress, Scanner, Session, Step, StepStatus, now_ms};
+use claude_session_core::{
+    Location, Paths, Progress, Scanner, Session, Step, StepStatus, Waiting, now_ms,
+};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -41,7 +43,7 @@ pub fn start(control: FeedControl, wake: impl Fn() + Send + 'static) -> Receiver
     rx
 }
 
-/// Three made-up sessions, plus the name of one that already finished.
+/// Made-up sessions (three working, two waiting), plus one that already finished.
 pub fn demo() -> (Vec<Session>, Vec<(String, f64)>) {
     use StepStatus::*;
     let now = now_ms();
@@ -65,7 +67,9 @@ pub fn demo() -> (Vec<Session>, Vec<(String, f64)>) {
                     step("Summarize the changes", Pending),
                 ],
                 activity: "Bash · Run unit tests".into(),
+                ..Default::default()
             },
+            waiting: None,
         },
         Session {
             id: "demo-2".into(),
@@ -81,7 +85,9 @@ pub fn demo() -> (Vec<Session>, Vec<(String, f64)>) {
                     step("Review", Pending),
                 ],
                 activity: "Read · src/routes/users.ts".into(),
+                ..Default::default()
             },
+            waiting: None,
         },
         Session {
             id: "demo-3".into(),
@@ -92,7 +98,29 @@ pub fn demo() -> (Vec<Session>, Vec<(String, f64)>) {
             progress: Progress {
                 steps: vec![],
                 activity: "Grep · retry".into(),
+                ..Default::default()
             },
+            waiting: None,
+        },
+        Session {
+            id: "demo-4".into(),
+            name: "Migrate the database".into(),
+            cwd: r"C:workcme-db".into(),
+            location: Location::Local,
+            since_ms: now - 2.0 * 60_000.0,
+            progress: Progress::default(),
+            waiting: Some(Waiting::Prompt("permission prompt".into())),
+        },
+        Session {
+            id: "demo-5".into(),
+            name: "Release notes".into(),
+            cwd: r"C:workcme-web".into(),
+            location: Location::Local,
+            since_ms: now - 5.0 * 60_000.0,
+            progress: Progress::default(),
+            waiting: Some(Waiting::Question(
+                "Should I publish v2.4 to npm now?".into(),
+            )),
         },
     ];
     (
