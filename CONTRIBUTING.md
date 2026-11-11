@@ -76,6 +76,11 @@ English, `card-tr` in Turkish), so please regenerate them when a UI change affec
 window's screenshots come from `installer\Setup.ps1 -Page welcome -Language en -Screenshot docs\screenshots\setup.png`
 (and `-Page done` for `setup-done.png`).
 
+The 2.0 screenshots in `docs/screenshots/v2/` come from the Rust widget, also rendered off-screen
+(run in `app/`, then copy into `docs/screenshots/v2/`):
+`cargo run --release -p claude-session-widget -- --demo --view card --lang en --screenshot card.png`
+(`--view icon` / `--view settings`, and `--lang tr` for `card-tr.png`).
+
 If an installed copy is running, quit it from the tray icon first so you don't confuse the two.
 Errors are written to `%TEMP%\claude-session-widget.log`.
 

@@ -57,7 +57,7 @@
   LanguageD = 'Otomatik, Windows görüntü dilini izler.'
   LAuto = 'Otomatik'
   Notify = 'Windows bildirimi'
-  NotifyD = 'Bir oturum işini bitirince bildirim gönderir.'
+  NotifyD = 'Bir oturum işini bitirince veya cevabınızı beklerken bildirim gönderir.'
   Blink = 'Simge yanıp sönsün'
   BlinkD = 'Bakılmamış biten iş varken simge yeşil yanıp söner.'
   Cli = 'Terminal oturumlarını göster'

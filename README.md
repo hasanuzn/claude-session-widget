@@ -31,6 +31,29 @@ which one is working on what, how many steps are done, and which one just finish
 - **Settings window** with English and Turkish UI (follows the Windows display language by default).
 - Draggable, remembers its position, optional transparency. Nothing ever leaves your computer.
 
+## Coming in 2.0 (preview)
+
+Version 2.0 is a rewrite in Rust ([`app/`](app/), plan in [docs/plans/v2.0.md](docs/plans/v2.0.md)).
+It is not released yet; the releases above are still 1.x. What changes:
+
+- **Much lighter:** about 37 MB of memory and ~0 % CPU while idle (1.x: about 320 MB). It draws
+  on the CPU, so it doesn't load the graphics driver.
+- **Waiting for you:** sessions that wait for your approval, a question card or a choice, and
+  sessions that ended their turn by asking you something, get their own blue section at the top
+  of the card, with the question. The icon turns blue with their count, and you get a notification.
+- **macOS and Linux** are planned next.
+
+<p align="center">
+  <img src="docs/screenshots/v2/card.png" width="380" alt="2.0 session card: two sessions waiting for an answer in a blue section at the top, three running sessions below, one finished">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/v2/icon.png" width="64" alt="2.0 icon in blue with a badge: two sessions are waiting for an answer">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/v2/settings.png" width="380" alt="2.0 settings page inside the card">
+</p>
+
+To try it, [install Rust](https://rustup.rs) and run `cargo run --release -p claude-session-widget`
+in `app/` (add `-- --demo` to see made-up sessions).
+
 ## Install
 
 ### Download (recommended)
@@ -165,6 +188,16 @@ Claude masaüstü uygulamasında **şu anda çalışan oturumları**, her birini
 oturum satırları (kapalıyken yalnızca başlık ve ilerleme çubuğu); biten işte yeşil yanıp sönme ve
 Windows bildirimi; sistem tepsisi simgesi; ayarlar penceresi; İngilizce ve Türkçe arayüz (varsayılan
 olarak Windows görüntü dilini izler).
+
+**Yakında 2.0 (önizleme):** Rust ile yeniden yazılan 2.0 henüz yayınlanmadı ([`app/`](app/)).
+Çok daha hafif (boştayken yaklaşık 37 MB bellek ve ~%0 işlemci; 1.x'te yaklaşık 320 MB).
+Onayınızı, bir soru kartını ya da seçiminizi bekleyen oturumları ve işini size soru sorarak bitiren
+oturumları kartın en üstünde mavi **Cevap bekliyor** bölümünde, sorusuyla birlikte gösterir; simge
+maviye döner ve bildirim gelir. Sırada macOS ve Linux desteği var.
+
+<p align="center">
+  <img src="docs/screenshots/v2/card-tr.png" width="380" alt="2.0 Türkçe oturum kartı: üstte mavi Cevap bekliyor bölümü">
+</p>
 
 **Kurulum:** [son sürümden](https://github.com/hasanuzn/claude-session-widget/releases/latest)
 `claude-session-widget-<sürüm>.zip` dosyasını indirip açın ve **`Install.cmd`** dosyasına çift

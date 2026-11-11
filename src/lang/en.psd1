@@ -58,7 +58,7 @@
   LanguageD = 'Auto follows the Windows display language.'
   LAuto = 'Auto'
   Notify = 'Windows notification'
-  NotifyD = 'Notify when a session finishes its work.'
+  NotifyD = 'Notify when a session finishes or needs your answer.'
   Blink = 'Blink the icon'
   BlinkD = 'Blinks green while a finished job is unseen.'
   Cli = 'Show terminal sessions'
