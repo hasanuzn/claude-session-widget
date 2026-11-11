@@ -26,15 +26,18 @@ mod imp {
     };
     use windows_sys::Win32::System::Threading::{CreateMutexW, GetCurrentProcessId};
     use windows_sys::Win32::UI::HiDpi::{GetDpiForSystem, GetDpiForWindow};
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+        GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
+    };
     use windows_sys::Win32::UI::Shell::{
         NIF_INFO, NIIF_INFO, NIM_MODIFY, NOTIFYICONDATAW, Shell_NotifyIconW, ShellExecuteW,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GWL_EXSTYLE, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, HWND_NOTOPMOST, HWND_TOPMOST, LWA_ALPHA, SW_HIDE, SW_SHOWNA,
-        SW_SHOWNORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
-        SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPos, ShowWindow, WS_EX_APPWINDOW,
-        WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+        EnumWindows, GWL_EXSTYLE, GetSystemMetrics, GetWindowLongPtrW, GetWindowRect,
+        GetWindowTextW, GetWindowThreadProcessId, HWND_NOTOPMOST, HWND_TOPMOST, LWA_ALPHA,
+        SM_SWAPBUTTON, SW_HIDE, SW_SHOWNA, SW_SHOWNORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+        SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SetLayeredWindowAttributes, SetWindowLongPtrW,
+        SetWindowPos, ShowWindow, WS_EX_APPWINDOW, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
     };
 
     pub type Hwnd = isize;
@@ -219,15 +222,27 @@ mod imp {
         work_area_of(unsafe { MonitorFromWindow(h(hwnd), MONITOR_DEFAULTTONEAREST) } as _)
     }
 
-    /// Work area of the monitor containing a point (physical px), else the primary one.
-    pub fn work_area_at(x: i32, y: i32) -> Option<PxRect> {
+    /// Work area of the monitor nearest to a point (physical px). Points left of or above
+    /// the primary monitor are negative, so any value is a real position.
+    pub fn work_area_near(x: i32, y: i32) -> Option<PxRect> {
         let pt = windows_sys::Win32::Foundation::POINT { x, y };
-        let flags = if x < 0 && y < 0 {
-            MONITOR_DEFAULTTOPRIMARY
+        work_area_of(unsafe { MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST) } as _)
+    }
+
+    pub fn primary_work_area() -> Option<PxRect> {
+        let pt = windows_sys::Win32::Foundation::POINT { x: 0, y: 0 };
+        work_area_of(unsafe { MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY) } as _)
+    }
+
+    /// Whether the primary mouse button is held right now. The system's window-move loop
+    /// swallows the button release, so the UI cannot learn it from its own input events.
+    pub fn primary_button_down() -> Option<bool> {
+        let vk = if unsafe { GetSystemMetrics(SM_SWAPBUTTON) } != 0 {
+            VK_RBUTTON
         } else {
-            MONITOR_DEFAULTTONEAREST
+            VK_LBUTTON
         };
-        work_area_of(unsafe { MonitorFromPoint(pt, flags) } as _)
+        Some(unsafe { GetAsyncKeyState(vk as i32) } as u16 & 0x8000 != 0)
     }
 
     pub fn move_window(hwnd: Hwnd, x: i32, y: i32) {
@@ -380,7 +395,13 @@ mod imp {
     pub fn work_area(_: Hwnd) -> Option<PxRect> {
         None
     }
-    pub fn work_area_at(_: i32, _: i32) -> Option<PxRect> {
+    pub fn work_area_near(_: i32, _: i32) -> Option<PxRect> {
+        None
+    }
+    pub fn primary_work_area() -> Option<PxRect> {
+        None
+    }
+    pub fn primary_button_down() -> Option<bool> {
         None
     }
     pub fn move_window(_: Hwnd, _: i32, _: i32) {}

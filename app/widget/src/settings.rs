@@ -20,7 +20,8 @@ pub struct Settings {
     /// 30–100 (%), opacity while the mouse is not over the widget.
     pub opacity: u32,
     pub keep_min: u32,
-    /// Window anchor (its bottom-right corner) in screen points; -1 = default corner.
+    /// Window anchor (its bottom-right corner) in screen points at the system scale;
+    /// -1/-1 = default corner. Use [`Settings::anchor`].
     pub right: f64,
     pub bottom: f64,
 }
@@ -77,6 +78,15 @@ impl Settings {
         }
     }
 
+    /// The saved bottom-right corner, or `None` for the default corner. Negative values are
+    /// real positions (monitors left of or above the primary one); only -1/-1 means unset.
+    pub fn anchor(&self) -> Option<(f64, f64)> {
+        let unset = !self.right.is_finite()
+            || !self.bottom.is_finite()
+            || (self.right == -1.0 && self.bottom == -1.0);
+        (!unset).then_some((self.right, self.bottom))
+    }
+
     fn sanitized(mut self) -> Self {
         self.opacity = self.opacity.clamp(30, 100);
         if ![2, 3, 5, 10].contains(&self.refresh_sec) {
@@ -124,6 +134,19 @@ mod tests {
         assert_eq!((s.refresh_sec, s.opacity, s.keep_min), (5, 80, 60));
         assert_eq!(s.right, 1916.0);
         assert!(s.start_expanded());
+    }
+
+    #[test]
+    fn negative_anchor_is_a_real_position() {
+        let mut s = Settings::default();
+        assert_eq!(s.anchor(), None);
+        // Bottom-right corner on a monitor left of the primary one.
+        (s.right, s.bottom) = (-4.0, 908.0);
+        assert_eq!(s.anchor(), Some((-4.0, 908.0)));
+        (s.right, s.bottom) = (1200.0, -20.0);
+        assert_eq!(s.anchor(), Some((1200.0, -20.0)));
+        s.right = f64::NAN;
+        assert_eq!(s.anchor(), None);
     }
 
     #[test]

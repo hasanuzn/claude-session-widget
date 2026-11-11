@@ -199,26 +199,38 @@ impl Shell {
         }
 
         // Position: keep the bottom-right corner on the saved anchor.
+        // The anchor is stored in points at the system scale (one space for all monitors,
+        // as in 1.x), not at the window's own monitor scale.
+        let sys = platform::system_scale() as f64;
         if self.dragging {
-            if !ctx.input(|i| i.pointer.any_down()) {
+            let down = platform::primary_button_down()
+                .unwrap_or_else(|| ctx.input(|i| i.pointer.any_down()));
+            if down {
+                // The system's move loop does not wake the UI when it ends; check again soon.
+                ctx.request_repaint_after(Duration::from_millis(100));
+            } else {
                 self.dragging = false;
-                self.w.settings.right = r[2] as f64 / scale as f64;
-                self.w.settings.bottom = r[3] as f64 / scale as f64;
+                self.w.settings.right = r[2] as f64 / sys;
+                self.w.settings.bottom = r[3] as f64 / sys;
                 self.save();
             }
-        } else if size_ok && let Some(area) = platform::work_area(h) {
-            let (mut ax, mut ay) = (
-                self.w.settings.right * scale as f64,
-                self.w.settings.bottom * scale as f64,
-            );
-            if ax < 0.0 || ay < 0.0 {
-                ax = (area[2] as f32 - 4.0 * scale) as f64;
-                ay = (area[3] as f32 - 4.0 * scale) as f64;
-            }
-            let x = (ax as i32 - w).clamp(area[0], (area[2] - w).max(area[0]));
-            let y = (ay as i32 - hgt).clamp(area[1], (area[3] - hgt).max(area[1]));
-            if (x - r[0]).abs() > 1 || (y - r[1]).abs() > 1 {
-                platform::move_window(h, x, y);
+        } else if size_ok {
+            let target = match self.w.settings.anchor() {
+                Some((right, bottom)) => {
+                    let (ax, ay) = ((right * sys).round() as i32, (bottom * sys).round() as i32);
+                    platform::work_area_near(ax - 1, ay - 1).map(|area| (ax, ay, area))
+                }
+                None => platform::work_area(h).map(|area| {
+                    let m = (4.0 * scale).round() as i32;
+                    (area[2] - m, area[3] - m, area)
+                }),
+            };
+            if let Some((ax, ay, area)) = target {
+                let x = (ax - w).clamp(area[0], (area[2] - w).max(area[0]));
+                let y = (ay - hgt).clamp(area[1], (area[3] - hgt).max(area[1]));
+                if (x - r[0]).abs() > 1 || (y - r[1]).abs() > 1 {
+                    platform::move_window(h, x, y);
+                }
             }
         }
 
@@ -328,15 +340,13 @@ fn labels(w: &Widget) -> TrayLabels {
 /// Where to create the window (points), so it does not jump on the first frame.
 pub fn initial_position(settings: &Settings, size: Vec2) -> Option<egui::Pos2> {
     let scale = platform::system_scale();
-    let (mut ax, mut ay) = (
-        settings.right as f32 * scale,
-        settings.bottom as f32 * scale,
-    );
-    let area = platform::work_area_at(ax as i32, ay as i32)?;
-    if ax < 0.0 || ay < 0.0 {
-        ax = area[2] as f32 - 4.0 * scale;
-        ay = area[3] as f32 - 4.0 * scale;
-    }
+    let (ax, ay) = match settings.anchor() {
+        Some((right, bottom)) => (right as f32 * scale, bottom as f32 * scale),
+        None => {
+            let area = platform::primary_work_area()?;
+            (area[2] as f32 - 4.0 * scale, area[3] as f32 - 4.0 * scale)
+        }
+    };
     Some(egui::pos2(
         (ax - size.x * scale) / scale,
         (ay - size.y * scale) / scale,

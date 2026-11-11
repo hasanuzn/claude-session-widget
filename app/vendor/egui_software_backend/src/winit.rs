@@ -696,7 +696,9 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                                     //UNSUPPORTED
                                 }
                                 ViewportCommand::StartDrag => {
-                                    //UNSUPPORTED
+                                    // claude-session-widget patch: upstream ignores this, so
+                                    // borderless windows cannot be moved.
+                                    _ = self.window.drag_window();
                                 }
                             }
 
