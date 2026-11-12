@@ -90,9 +90,12 @@ jobs:
 
       - name: Linux libraries for the widget (tray, windowing)
         if: runner.os == 'Linux'
+        # Mirrors sometimes hang: retry and time out instead of waiting 45 minutes.
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxdo-dev libayatana-appindicator3-dev libxkbcommon-dev
+          APT="-o Acquire::Retries=5 -o Acquire::http::Timeout=30"
+          sudo apt-get $APT update
+          sudo apt-get $APT install -y libgtk-3-dev libxdo-dev libayatana-appindicator3-dev libxkbcommon-dev
 
       - name: Formatting
         run: cargo fmt --all --check
