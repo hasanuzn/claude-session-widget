@@ -137,6 +137,9 @@ Sessions that don't keep a task list show no progress bar, only their latest act
 - These are **undocumented internal files** of Claude Code and the desktop app. An update to
   Claude may change them and stop the widget from seeing sessions until it is updated.
 - Sessions on a remote SSH host are detected but their progress can't be read.
+- **Cloud sessions** (Claude Code on the web, or sessions the app runs in the cloud) are not
+  shown. They leave no files on your computer: the app fetches them from claude.ai, and the
+  widget never connects to the internet.
 - Windows only. Tested on Windows 11 with the Claude desktop app; please report other setups.
 
 ## Requirements
@@ -218,8 +221,10 @@ bildirimi, yanıp sönme, terminal oturumları, yenileme aralığı ve bitenleri
 buradan değiştirilir.
 
 **Bilinen sınırlamalar:** widget, Claude'un belgelenmemiş iç dosyalarını okur; Claude
-güncellemeleri bunları değiştirirse widget'ın da güncellenmesi gerekebilir. Yalnızca Windows'ta
-çalışır.
+güncellemeleri bunları değiştirirse widget'ın da güncellenmesi gerekebilir. **Bulut oturumları**
+(web'deki Claude Code ya da uygulamanın bulutta çalıştırdığı oturumlar) gösterilmez: bilgisayarda
+dosya bırakmazlar, uygulama onları claude.ai'den alır; widget ise internete hiç bağlanmaz.
+Yalnızca Windows'ta çalışır.
 
 **Kaldırma:** **Ayarlar → Uygulamalar → Yüklü uygulamalar** listesinden ya da
 `Uninstall.cmd`. Ayarları korumak için: `Uninstall.cmd -KeepSettings`.
